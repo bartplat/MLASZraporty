@@ -1,0 +1,2463 @@
+---
+title: |
+  | Raport z internetowego badania absolwentów, którzy ukończyli szkołę w roku 2019/2020 - II fala badania
+subtitle: |
+  | `r get(params$obiektWskazniki)$dane_szkoly_2f[[1]]$'nazwa szkoły'`
+  | `r get(params$obiektWskazniki)$dane_szkoly_2f[[1]]$'adres szkoły'`
+output:
+  pdf_document:
+    dev: cairo_pdf
+    fig_caption: no
+    includes:
+      in_header: naglowek2.tex
+    toc: yes
+    toc_depth: 2
+  html_document:
+    includes:
+      after_body: logo_mlezaimd_dol.html
+      before_body: logo_mlezaimd_gora.html
+    toc: yes
+    toc_float: yes
+lang: pl
+papersize: a4
+fontsize: 11pt
+geometry: margin=20mm
+params:
+  obiektWskazniki: "szkola"
+  obiektWskaznikiPorownanie: "wojSzk"
+  plikZObiektami: "../../data/wskaznikiWojewodztwo.RData"
+  plikZObiektamiKraj: "../../data/obiekt_caly_kraj.RData"
+  progLiczebnosci: 10
+  typDokumentu: "pdf"
+  wyrownanieTabWykr: "center"
+wskazniki:
+  wskazniki: "szkola"
+  wskaznikiGrPor: "wojSzk"
+---
+
+```{r setup, echo = FALSE, message = FALSE, warning = FALSE}
+library(dplyr)
+library(ggplot2)
+library(MLASZraporty)
+library(kableExtra)
+library(tidyr)
+
+progLiczebnosci = params$progLiczebnosci
+typDokumentu = params$typDokumentu
+wyrownanieTabWykr = params$wyrownanieTabWykr
+
+if (params$plikZObiektami != "") {
+  obiektyZeWskaznikami = load(params$plikZObiektami)
+  obiektyZeWskaznikamiKraj = load(params$plikZObiektamiKraj)
+} else {
+  szkola = get(params$obiektWskazniki)
+  wojSzk = get(params$obiektWskaznikiPorownanie)
+  # polska = get(params$obiektWskaznikiKraj)
+}
+
+szkola = szkola %>%
+  mutate(TYP = case_when(
+    formy_2f[[1]]$szkola_mian %in% "szkoła branżowa pierwszego stopnia" ~ 1,
+    formy_2f[[1]]$szkola_mian %in% "technikum" ~ 2,
+    formy_2f[[1]]$szkola_mian %in% "szkoła policealna" ~ 3))
+wojSzk = wojSzk %>%
+  filter(ID_RSPO %in% szkola$ID_RSPO)
+polska = polska %>% 
+  filter(TYP %in% szkola$TYP)
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+wyk_num = function() {
+  nr = get0("___nrWykresu___", parent.frame(), ifnotfound = 1)
+  assign("___nrWykresu___", nr + 1, envir = parent.frame())
+  return(nr)
+}
+
+typ_szkoly_lmn = case_when(
+  wojSzk$formy_2f[[1]]$szkola_mian %in% "szkoła branżowa pierwszego stopnia" ~ "szkołach branżowych pierwszego stopnia",
+  wojSzk$formy_2f[[1]]$szkola_mian %in% "technikum" ~ "technikach",
+  wojSzk$formy_2f[[1]]$szkola_mian %in% "szkoła policealna" ~ "szkołach policealnych")
+
+typ_szkoly_zgodnosc = case_when(
+  wojSzk$formy_2f[[1]]$szkola_mian %in% "szkoła branżowa pierwszego stopnia" ~ "szkole branżowej pierwszego stopnia",
+  wojSzk$formy_2f[[1]]$szkola_mian %in% "technikum" ~ "technikum",
+  wojSzk$formy_2f[[1]]$szkola_mian %in% "szkoła policealna" ~ "szkole policealnej")
+
+options(scipen = 999)
+```
+
+`r ifelse(typDokumentu %in% "pdf", "---", "")`
+
+`r ifelse(typDokumentu %in% "pdf", "\\vfill\n\\includegraphics{Belka-Losy-absolwentow-Kolor-PL}", "")`
+
+`r ifelse(typDokumentu %in% "pdf", "\\newpage", "")`
+
+# 1. Wprowadzenie
+
+Szanowni Państwo, 
+przekazujemy kolejny raport z badania ankietowego przeprowadzonego w ramach projektu monitorowania losów absolwentów szkół prowadzących kształcenie w zawodach szkolnictwa branżowego. Mamy nadzieję, że przedstawione wyniki okażą się dla Państwa ciekawe i pomocne w pracy.
+
+1. Informacje o badaniu
+
+    a) Badanie przeprowadzono w ramach projektu konkursowego "Monitorowanie Losów Absolwentów Szkół Zawodowych - II i III runda", realizowanego przez firmy PBS Sp. z o.o. wraz z Danae Sp. z o.o. Prace związane z przygotowaniem narzędzi badawczych i opracowaniem wyników wykonano w Instytucie Badań Edukacyjnych w ramach projektu systemowego "Monitorowanie Losów Absolwentów Szkół Zawodowych - etap II". Oba projekty są współfinansowane z funduszy Unii Europejskiej. Wsparcie pochodzi z Działania 2.15. "Kształcenie i szkolenie zawodowe dostosowane do potrzeb zmieniającej się gospodarki" II osi priorytetowej "Efektywna polityka publiczna dla rynku pracy, gospodarki i edukacji" Programu Operacyjnego Wiedza, Edukacja, Rozwój (PO WER).
+    b) Raport opiera się na wynikach badania internetowego przeprowadzonego w okresie od października 2020 roku do stycznia 2021 roku. 
+    c) Zaproszenie do wypełnienia ankiety on-line skierowano do `r szkola$liczba_ucz_1f[[1]]` `r ifelse(szkola$liczba_ucz_1f[[1]] %in% 1, "absolwenta, który w roku 2019/2020 wziął udział w I fali badania jako uczeń", "absolwentów, którzy w roku 2019/2020 wzięli udział w I fali badania jako uczniowie")` ostatniej klasy Państwa szkoły. Raport z tego badania udostępniliśmy Państwu  w październiku 2020 roku, wysyłając link z adresu: raporty@losyabsolwentow.pl.
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.align = wyrownanieTabWykr}
+if (szkola$liczba_abs_2f[[1]] %in% 1:9) {
+  cat(
+    "    d) Ankietę wypełniło mniej niż 10 absolwentów (N=", 
+    szkola$liczba_abs_2f[[1]],
+    "), co stanowi zbyt małą liczbę aby można było zaprezentować wyniki badania dla Państwa szkoły. ",
+    sep = ""
+  )
+} else if (szkola$liczba_abs_2f[[1]] %in% 0) {
+  cat("    d) Ankiety nie wypełnił żaden absolwent Państwa szkoły, w związku z tym nie można zaprezentować wyników badania dla Państwa szkoły. ")
+}
+
+cat(
+  "Dlatego w przygotowanym dla Państwa raporcie prezentujemy wyniki zbiorczo dla wszystkich ",
+  szkola$formy_2f[[1]]$szkola_lmn,
+  " z Państwa województwa.",
+  sep = ""
+  )
+```
+    
+    e) Osoby, które wzięły udział w badaniu w roku 2019/2020 jako uczniowie ostatnich klas Państwa szkoły, zostaną poproszone o udział w jeszcze dwóch falach badania. Wyniki kolejnych badań zostaną Państwu udostępnione w ten sam sposób co ten raport.
+    f) Jeżeli w kolejnych badaniach weźmie udział więcej niż 10 absolwentów, którzy ukończyli Państwa szkołę, w udostępnianych Państwu raportach, obok statystyk wojewódzkich, znajdą się również zestawienia dotyczące uczniów Państwa szkoły.
+
+2. Prezentacja wyników
+
+    a) Wyniki prezentowane w niniejszym raporcie, dotyczące absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop`, zestawiono z wynikami dotyczącymi absolwentów tego typu szkół, z tego samego rocznika, z całego kraju.
+    b) W celu zachowania czytelności wykresów, etykiety z wartościami poniżej 6% nie są prezentowane.
+    c) W celu skorygowania wpływu poziomu realizacji badań w różnych lokalizacjach na wyniki badania, dane zostały odpowiednio przeważone.
+    d) Niesumowanie się wartości na niektórych wykresach do 100% lub sumowanie się do wartości innej, niż podana w tekście, wynika z zaokrągleń.
+    e) Ze względu na dużą liczbę raportów (w badaniu wzięli udział absolwenci 1711 szkół), zostały one sporządzone automatycznie.
+
+`r ifelse(typDokumentu %in% "pdf", "\\newpage", "")`
+
+3. Absolwenci, których dotyczy raport
+
+    a) Osoby, które w roku 2019/2020 wzięły udział w badaniu jako uczniowie ostatnich klas `r szkola$formy_2f[[1]]$szkola_lmn`, a następnie jako absolwenci w badaniu realizowanym od października 2020 roku.
+    b) Liczba absolwentów z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop`, których dotyczy raport: `r round(wojSzk$liczba_abs_2f_waga[[1]])`, w tym kobiet: `r round(wojSzk$liczba_kobiet_2f_waga[[1]])`.
+    c) Zawody, w których kształcili się respondenci z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop`:
+    
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.align = wyrownanieTabWykr}
+as.data.frame(wojSzk$zawod_liczebnosc_2f_waga[[1]]) %>% 
+  select(-c(n, branza)) %>% 
+  arrange(desc(n_zaw)) %>%
+  mutate(across(zawod, ~ linebreak(., align = c("l")))) %>%
+  rename(`Zawód` = zawod,
+         `Liczba respondentów` = n_zaw) %>% 
+  kable("latex", booktabs = TRUE, escape = FALSE, longtable = TRUE,
+        linesep = "",
+        align = "lc",
+        format.args = list(decimal.mark = ",", big.mark = " "),
+        col.names = linebreak(c("Zawód", "Liczba\nrespondentów"), align = c("l", "l"))) %>%
+  kable_styling(position = wyrownanieTabWykr,
+                latex_options = c("hold_position", "repeat_header"),
+                repeat_header_text = "ciąg dalszy")
+```
+
+`r ifelse(typDokumentu %in% "pdf", "\\newpage", "")`
+
+# 2. Sytuacja zawodowa absolwentów w okresie lipiec-wrzesień 2020
+
+## 2.1. Praca zarobkowa
+
+Wśród uczestników badania, którzy zakończyli naukę w `r typ_szkoly_lmn` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop` `r round(wojSzk$praca_zarobkowa_2f_waga[[1]]$ods_prac_zar_ever * 100)`% pracowało zarobkowo przez co najmniej dwa tygodnie w lipcu, sierpniu lub we wrześniu 2020 roku. W przypadku ogółu `r szkola$formy_2f[[1]]$szkola_lmn` z całego kraju, co najmniej dwutygodniowy okres pracy w ciągu jednego z tych miesięcy charakteryzował `r round(polska$praca_zarobkowa_2f_waga[[1]]$ods_prac_zar_ever * 100)`% absolwentów. 
+
+\textcolor{gray}{Uwzględniono epizody pracy zarobkowej trwające co najmniej dwa tygodnie w danym miesiącu. Do porównań wybrano okres od lipca do września 2020 roku, ponieważ dla tych miesięcy zostały uzyskane informacje o sytuacji zawodowej od wszystkich absolwentów uczestniczących w badaniu (pierwsze ankiety zrealizowano w październiku, a respondenci odnosili się do miesięcy poprzedzających miesiąc, w którym wypełniali ankietę).}
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$praca_zarobkowa_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  rename(rozklad = ods_prac_zar_ever) %>% 
+  mutate(lab = paste0(round(rozklad * 100), "%"),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo))
+
+tab2 = as.data.frame(polska$praca_zarobkowa_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  rename(rozklad = ods_prac_zar_ever) %>% 
+  mutate(lab = paste0(round(rozklad * 100), "%"),
+         typ = "Polska")
+
+tab = rbind(tab1, tab2)
+
+ggplot(tab, aes(x = reorder(typ, typ), y = rozklad)) +
+  geom_bar(width = 0.75, stat = "identity", colour = "white", fill = "#f768a1") +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+  labs(fill = NULL,
+       title = paste0(
+         "Wykres ", wyk_num(),
+         ": Odsetek absolwentów, którzy w okresie od lipca do września\n2020 roku mieli epizod pracy zarobkowej"
+       )) +
+  geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3, hjust = ifelse(round(tab$rozklad, 2) < 0.05, -1.3, 0.5)) +
+  ylab(NULL) +
+  xlab(NULL) +
+  coord_flip() +
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = "white"),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title.position = "plot", # żeby tytuł był najbardziej po lewej
+        plot.title = element_text(size = 12)) + 
+  geom_rect(xmin = 0.5, xmax = 2.5, ymin = 0, ymax = 1, colour = "black", alpha = 0, size = 0.25)
+```
+
+\textcolor{gray}{\relscale{0.75}Wykres przedstawia odpowiedzi `r round(wojSzk$praca_zarobkowa_2f_waga[[1]]$n)` absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop` oraz `r round(polska$praca_zarobkowa_2f_waga[[1]]$n)` absolwentów tego typu szkół z całego kraju. Respondentom zadano pytanie “Proszę spojrzeć na poniższy kalendarz i zaznaczyć miesiące, w których w sumie przez co najmniej dwa tygodnie (bez względu na liczbę godzin w tygodniu): (...) pracował(a) Pan(i). zarobkowo?”. Respondenci, w odniesieniu do każdego miesiąca, wskazywali odpowiedź “Tak” lub “Nie”.}
+
+```{r, echo = FALSE, fig.align = wyrownanieTabWykr, results = 'asis'}
+cat("Odsetek absolwentów ",
+    szkola$formy_2f[[1]]$szkola_lmn,
+    " z województwa ",
+    szkola$formy_2f[[1]]$woj_nazwa_dop,
+    " wykonujących pracę zarobkową przez co najmniej dwa tygodnie ",
+    sep = "")
+if (any(round(wojSzk$praca_zarobkowa_mies_2f_waga[[1]]$ods_prac_zar_07 * 100) != round(wojSzk$praca_zarobkowa_mies_2f_waga[[1]]$ods_prac_zar_08 * 100),
+    round(wojSzk$praca_zarobkowa_mies_2f_waga[[1]]$ods_prac_zar_08 * 100) != round(wojSzk$praca_zarobkowa_mies_2f_waga[[1]]$ods_prac_zar_09 * 100),
+    round(wojSzk$praca_zarobkowa_mies_2f_waga[[1]]$ods_prac_zar_07 * 100) != round(wojSzk$praca_zarobkowa_mies_2f_waga[[1]]$ods_prac_zar_09 * 100))) {
+  cat(
+    "różnił się w zależności od miesiąca i wynosił ",
+    round(wojSzk$praca_zarobkowa_mies_2f_waga[[1]]$ods_prac_zar_07 * 100),
+    "% w lipcu, ",
+    round(wojSzk$praca_zarobkowa_mies_2f_waga[[1]]$ods_prac_zar_08 * 100),
+    "% w sierpniu i ",
+    round(wojSzk$praca_zarobkowa_mies_2f_waga[[1]]$ods_prac_zar_09 * 100),
+    "% we wrześniu.\n\n",
+    sep = ""
+  )
+} else {
+  cat(
+    "nie różnił się w zależności od miesiąca.\n\n"
+  )
+}
+```
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$praca_zarobkowa_mies_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = paste0(round(value * 100), "%"),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo),
+         name = c("2020.07", "2020.08", "2020.09"))
+tab2 = as.data.frame(polska$praca_zarobkowa_mies_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = paste0(round(value * 100), "%"),
+         typ = "Polska",
+         name = c("2020.07", "2020.08", "2020.09"))
+
+tab = rbind(tab1, tab2)
+tab$typ = with(tab, reorder(typ, desc(typ)))
+
+wykres = ggplot(tab, aes(x = name, y = value, colour = typ, group = reorder(typ, typ))) +
+  geom_point(aes(shape = typ, color = typ), size = 2) +
+  geom_line(aes(linetype = typ, color = typ), size = 1) +
+  ylab(NULL) + 
+  xlab("Miesiąc") +
+  labs(title = paste0(
+    "Wykres ", wyk_num(),
+    ": Odsetek absolwentów, którzy w danym miesiącu mieli epizod pracy\nzarobkowej"),
+    fill = NULL) +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1),
+                     breaks = seq(0, 1,by = 0.2)) +
+  theme(legend.title = element_blank(),
+        plot.title = element_text(size = 12),
+        panel.background = element_rect(fill = "white"),
+        panel.grid.major = element_line(color = "lightgray"),
+        plot.title.position = "plot") +
+  geom_rect(xmin = 0.5, xmax = 3.5, ymin = 0, ymax = 1, colour = "black", alpha = 0, size = 0.25) +
+  scale_shape_manual(values = c(1, 0)) +
+  scale_linetype_manual(values = c(1, 2))
+
+print(wykres)
+
+cat("Dane z wykresu przedstawiono szczegółowo w poniższej tabeli.\n\n")
+
+woj = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo)
+
+tab1 %>% 
+  left_join(tab2, by = "name") %>% 
+  select(-contains(c("typ", "lab"))) %>% 
+  mutate(xx = paste0(round(value.x * 100), "%"),
+         yy = paste0(round(value.y * 100), "%")) %>% 
+  select(-contains("value")) %>% 
+  kable("latex", booktabs = TRUE,
+        col.names = NULL, linesep = "",
+        align = "lcc") %>%
+  kable_styling(position = wyrownanieTabWykr,
+                latex_options = "hold_position") %>% 
+  add_header_above(c(" ", setNames(1, woj), "Polska" = 1))
+```
+
+## 2.2. Bezrobocie rejestrowane
+
+W okresie od lipca do września 2020 roku `r round(wojSzk$bezrobocie_2f_waga[[1]]$bezrob_ever * 100)`% absolwentów  `r szkola$formy_2f[[1]]$szkola_lmn` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop` uczestniczących w badaniu zarejestrowało się w urzędzie pracy jako osoby bezrobotne. Spośród absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z całego kraju co najmniej dwutygodniowy okres bezrobocia rejestrowanego w lipcu, sierpniu lub we wrześniu 2020 roku odnotowano `r if (round(wojSzk$bezrobocie_2f_waga[[1]]$bezrob_ever * 100) == round(polska$bezrobocie_2f_waga[[1]]$bezrob_ever * 100)) {paste0("również")}` w przypadku `r round(polska$bezrobocie_2f_waga[[1]]$bezrob_ever * 100)`%.
+
+\textcolor{gray}{Uwzględniono epizody bezrobocia rejestrowanego trwające co najmniej dwa tygodnie w danym miesiącu.}
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$bezrobocie_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  rename(rozklad = bezrob_ever) %>% 
+  mutate(lab = paste0(round(rozklad * 100), "%"),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo))
+
+tab2 = as.data.frame(polska$bezrobocie_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  rename(rozklad = bezrob_ever) %>% 
+  mutate(lab = paste0(round(rozklad * 100), "%"),
+         typ = "Polska")
+
+tab = rbind(tab1, tab2)
+
+ggplot(tab, aes(x = reorder(typ, typ), y = rozklad)) +
+  geom_bar(width = 0.75, stat = "identity", colour = "white", fill = "#f768a1") +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+  labs(fill = NULL,
+       title = paste0(
+         "Wykres ", wyk_num(),
+         ": Odsetek absolwentów, którzy w okresie od lipca do września 2020\nroku mieli epizod bezrobocia rejestrowanego"
+       )) +
+  geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3, hjust = ifelse(round(tab$rozklad, 2) < 0.05, -1.3, 0.5)) +
+  ylab(NULL) +
+  xlab(NULL) +
+  coord_flip() +
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = "white"),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(size = 12)) +
+  geom_rect(xmin = 0.5, xmax = 2.5, ymin = 0, ymax = 1, colour = "black", alpha = 0, size = 0.25)
+```
+
+\textcolor{gray}{\relscale{0.75}Wykres przedstawia odpowiedzi `r round(wojSzk$bezrobocie_2f_waga[[1]]$n)` absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z `r szkola$formy_2f[[1]]$woj_nazwa_dop` oraz `r round(polska$bezrobocie_2f_waga[[1]]$n)` absolwentów tego typu szkół z całego kraju. Respondentom zadano pytanie “Proszę spojrzeć na poniższy kalendarz i zaznaczyć miesiące, w których w sumie przez co najmniej dwa tygodnie (bez względu na liczbę godzin w tygodniu): (...) był(a) Pan(i) zarejestrowany(a) w urzędzie pracy jako osoba bezrobotna?”. Respondenci, w odniesieniu do każdego miesiąca, wskazywali odpowiedź “Tak” lub “Nie”.}
+
+```{r, echo = FALSE, fig.align = wyrownanieTabWykr, results = 'asis'}
+if (any(round(wojSzk$bezrobocie_mies_2f_waga[[1]]$bezrob_07 * 100) != round(wojSzk$bezrobocie_mies_2f_waga[[1]]$bezrob_08 * 100),
+        round(wojSzk$bezrobocie_mies_2f_waga[[1]]$bezrob_08 * 100) != round(wojSzk$bezrobocie_mies_2f_waga[[1]]$bezrob_09 * 100),
+        round(wojSzk$bezrobocie_mies_2f_waga[[1]]$bezrob_07 * 100) != round(wojSzk$bezrobocie_mies_2f_waga[[1]]$bezrob_09 * 100))) {
+  cat(
+    "W lipcu osoby zarejestrowane jako bezrobotne stanowiły ",
+    round(wojSzk$bezrobocie_mies_2f_waga[[1]]$bezrob_07 * 100),
+    "% absolwentów ",
+    szkola$formy_2f[[1]]$szkola_lmn,
+    " z województwa ",
+    szkola$formy_2f[[1]]$woj_nazwa_dop,
+    ", w sierpniu ",
+    round(wojSzk$bezrobocie_mies_2f_waga[[1]]$bezrob_08 * 100),
+    "%, we wrześniu ",
+    round(wojSzk$bezrobocie_mies_2f_waga[[1]]$bezrob_09 * 100),
+    "%.",
+    sep = ""
+  )
+} else {
+  cat(
+    "W ciągu każdego z trzech rozpatrywanych miesięcy osoby zarejestrowane jako bezrobotne stanowiły ",
+    round(wojSzk$bezrobocie_mies_2f_waga[[1]]$bezrob_07 * 100),
+    "% absolwentów ",
+    szkola$formy_2f[[1]]$szkola_lmn,
+    " z województwa ",
+    szkola$formy_2f[[1]]$woj_nazwa_dop,
+    ".",
+    sep = ""
+  )
+}
+```
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$bezrobocie_mies_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = paste0(round(value * 100), "%"),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo),
+         name = c("2020.07", "2020.08", "2020.09"))
+tab2 = as.data.frame(polska$bezrobocie_mies_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = paste0(round(value * 100), "%"),
+         typ = "Polska",
+         name = c("2020.07", "2020.08", "2020.09"))
+
+tab = rbind(tab1, tab2)
+tab$typ = with(tab, reorder(typ, desc(typ)))
+
+wykres = ggplot(tab, aes(x = name, y = value, colour = typ, group = reorder(typ, typ))) +
+  geom_point(aes(shape = typ, color = typ), size = 2) +
+  geom_line(aes(linetype = typ, color = typ), size = 1) +
+  ylab(NULL) + 
+  xlab("Miesiąc") +
+  labs(title = paste0(
+    "Wykres ", wyk_num(),
+    ": Odsetek absolwentów, którzy w danym miesiącu mieli epizod bezrobocia\nrejestrowanego"),
+    fill = NULL) +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1),
+                     breaks = seq(0, 1,by = 0.2)) +
+  theme(legend.title = element_blank(),
+        plot.title = element_text(size = 12),
+        panel.background = element_rect(fill = "white"),
+        panel.grid.major = element_line(color = "lightgray"),
+        plot.title.position = "plot") +
+  geom_rect(xmin = 0.5, xmax = 3.5, ymin = 0, ymax = 1, colour = "black", alpha = 0, size = 0.25) +
+  scale_shape_manual(values = c(1, 0)) +
+  scale_linetype_manual(values = c(1, 2))
+
+print(wykres)
+
+cat("Dane z wykresu przedstawiono szczegółowo w poniższej tabeli.\n\n")
+
+woj = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo)
+
+tab1 %>% 
+  left_join(tab2, by = "name") %>% 
+  select(-contains(c("typ", "lab"))) %>% 
+  mutate(xx = paste0(round(value.x * 100), "%"),
+         yy = paste0(round(value.y * 100), "%")) %>% 
+  select(-contains("value")) %>% 
+  kable("latex", booktabs = TRUE,
+        col.names = NULL, linesep = "",
+        align = "lcc") %>%
+  kable_styling(position = wyrownanieTabWykr,
+                latex_options = "hold_position") %>% 
+  add_header_above(c(" ", setNames(1, woj), "Polska" = 1))
+```
+
+## 2.3. Bierność edukacyjna i zawodowa (NEET)
+
+```{r, echo = FALSE, fig.align = wyrownanieTabWykr, results = 'asis'}
+if (wojSzk$neet_2f_waga[[1]]$neet_ever %in% 0) {
+  cat(
+    "Wśród uczestniczących w badaniu absolwentów ",
+    szkola$formy_2f[[1]]$szkola_lmn,
+    " z województwa ",
+    szkola$formy_2f[[1]]$woj_nazwa_dop,
+    " żaden nie był bierny edukacyjnie i zawodowo przez cały okres od lipca do września 2020 roku.\n\n",
+    sep = ""
+  )
+} else {
+  cat(
+    "Wśród uczestniczących w badaniu absolwentów ",
+    szkola$formy_2f[[1]]$szkola_lmn,
+    " z województwa ",
+    szkola$formy_2f[[1]]$woj_nazwa_dop,
+    " ",
+    round(wojSzk$neet_2f_waga[[1]]$neet_ever * 100),
+    "% pozostawało biernych edukacyjnie i zawodowo przez cały okres od lipca do września 2020 roku. Do tej grupy mogły należeć m.in. osoby, które później, tj. od października, podjęły dalszą naukę - informacje na temat kontynuowania nauki przedstawiamy w kolejnym rozdziale.\n\n",
+    sep = ""
+  )
+}
+```
+
+\textcolor{gray}{Bierność edukacyjna i zawodowa jest tutaj rozumiana jako brak w danym miesiącu co najmniej dwutygodniowego epizodu nauki, wykonywania lub poszukiwania pracy zarobkowej oraz odbywania bezpłatnych praktyk, stażu lub wolontariatu. Bierność edukacyjna i zawodowa jest tożsama pojęciu NEET (ang. Neither in Employment nor in Education and Training).}
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$neet_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  rename(rozklad = neet_ever) %>% 
+  mutate(lab = paste0(round(rozklad * 100), "%"),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo))
+
+tab2 = as.data.frame(polska$neet_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  rename(rozklad = neet_ever) %>% 
+  mutate(lab = paste0(round(rozklad * 100), "%"),
+         typ = "Polska")
+
+tab = rbind(tab1, tab2)
+
+ggplot(tab, aes(x = reorder(typ, typ), y = rozklad)) +
+  geom_bar(width = 0.75, stat = "identity", colour = "white", fill = "#f768a1") +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+  labs(fill = NULL,
+       title = paste0(
+         "Wykres ", wyk_num(),
+         ": Odsetek absolwentów, którzy przez cały okres\nod lipca do września 2020 roku pozostawali bierni edukacyjnie i zawodowo"
+       )) +
+  geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3, hjust = ifelse(round(tab$rozklad, 2) < 0.05, -1.3, 0.5)) +
+  ylab(NULL) +
+  xlab(NULL) +
+  coord_flip() +
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = "white"),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(size = 12)) +
+  geom_rect(xmin = 0.5, xmax = 2.5, ymin = 0, ymax = 1, colour = "black", alpha = 0, size = 0.25)
+```
+
+\textcolor{gray}{\relscale{0.75}Wykres przedstawia odpowiedzi `r round(wojSzk$neet_2f_waga[[1]]$n)` absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop` oraz `r round(polska$neet_2f_waga[[1]]$n)` absolwentów tego typu szkół z całego kraju. Respondentom zadano pytania “Proszę spojrzeć na poniższy kalendarz i zaznaczyć miesiące, w których w sumie przez co najmniej dwa tygodnie (bez względu na liczbę godzin w tygodniu): uczył(a) się Pan(i) w szkole, na kursie lub na studiach?; pracował(a) Pan(i) zarobkowo?; odbywała(a) Pan(i) bezpłatne praktyki, staż lub wolontariat?; poszukiwał(a) Pan(i) pracy zarobkowej?”. Respondenci, w odniesieniu do każdego pytania i miesiąca, wskazywali odpowiedź “Tak” lub “Nie”.}
+
+```{r, echo = FALSE, fig.align = wyrownanieTabWykr, results = 'asis'}
+if ((wojSzk$neet_mies_2f_waga[[1]]$neet_07 > wojSzk$neet_mies_2f_waga[[1]]$neet_08) & (wojSzk$neet_mies_2f_waga[[1]]$neet_07 > wojSzk$neet_mies_2f_waga[[1]]$neet_09) | 
+    (wojSzk$neet_mies_2f_waga[[1]]$neet_08 > wojSzk$neet_mies_2f_waga[[1]]$neet_09) & (wojSzk$neet_mies_2f_waga[[1]]$neet_08 > wojSzk$neet_mies_2f_waga[[1]]$neet_07) |
+    (wojSzk$neet_mies_2f_waga[[1]]$neet_09 > wojSzk$neet_mies_2f_waga[[1]]$neet_07) & (wojSzk$neet_mies_2f_waga[[1]]$neet_09 > wojSzk$neet_mies_2f_waga[[1]]$neet_08)) {
+  
+  mies_max = case_when((
+    wojSzk$neet_mies_2f_waga[[1]]$neet_07 > wojSzk$neet_mies_2f_waga[[1]]$neet_08) & (wojSzk$neet_mies_2f_waga[[1]]$neet_07 > wojSzk$neet_mies_2f_waga[[1]]$neet_09) ~ "w lipcu",
+    (wojSzk$neet_mies_2f_waga[[1]]$neet_08 > wojSzk$neet_mies_2f_waga[[1]]$neet_09) & (wojSzk$neet_mies_2f_waga[[1]]$neet_08 > wojSzk$neet_mies_2f_waga[[1]]$neet_07) ~ "w sierpniu",
+    (wojSzk$neet_mies_2f_waga[[1]]$neet_09 > wojSzk$neet_mies_2f_waga[[1]]$neet_07) & (wojSzk$neet_mies_2f_waga[[1]]$neet_09 > wojSzk$neet_mies_2f_waga[[1]]$neet_08) ~ "we wrześniu")
+  
+  mies_wart = case_when(
+    mies_max %in% "w lipcu" ~ wojSzk$neet_mies_2f_waga[[1]]$neet_07,
+    mies_max %in% "w sierpniu" ~ wojSzk$neet_mies_2f_waga[[1]]$neet_08,
+    mies_max %in% "we wrześniu" ~ wojSzk$neet_mies_2f_waga[[1]]$neet_09)
+  
+  cat(
+    "Odsetek biernych edukacyjnie i zawodowo absolwentów ",
+    szkola$formy_2f[[1]]$szkola_lmn,
+    " z województwa ",
+    szkola$formy_2f[[1]]$woj_nazwa_dop,
+    " w ciągu rozpatrywanego okresu był najwyższy ",
+    mies_max,
+    " - wynosił wówczas ",
+    round(mies_wart * 100),
+    "%.\n\n",
+    sep = ""
+  )
+  
+} else if ((wojSzk$neet_mies_2f_waga[[1]]$neet_07 < wojSzk$neet_mies_2f_waga[[1]]$neet_08) & (wojSzk$neet_mies_2f_waga[[1]]$neet_07 < wojSzk$neet_mies_2f_waga[[1]]$neet_09) | 
+           (wojSzk$neet_mies_2f_waga[[1]]$neet_08 < wojSzk$neet_mies_2f_waga[[1]]$neet_09) & (wojSzk$neet_mies_2f_waga[[1]]$neet_08 < wojSzk$neet_mies_2f_waga[[1]]$neet_07) |
+           (wojSzk$neet_mies_2f_waga[[1]]$neet_09 < wojSzk$neet_mies_2f_waga[[1]]$neet_07) & (wojSzk$neet_mies_2f_waga[[1]]$neet_09 < wojSzk$neet_mies_2f_waga[[1]]$neet_08)) {
+  
+  mies_min = case_when((
+    wojSzk$neet_mies_2f_waga[[1]]$neet_07 < wojSzk$neet_mies_2f_waga[[1]]$neet_08) & (wojSzk$neet_mies_2f_waga[[1]]$neet_07 < wojSzk$neet_mies_2f_waga[[1]]$neet_09) ~ "w lipcu",
+    (wojSzk$neet_mies_2f_waga[[1]]$neet_08 < wojSzk$neet_mies_2f_waga[[1]]$neet_09) & (wojSzk$neet_mies_2f_waga[[1]]$neet_08 < wojSzk$neet_mies_2f_waga[[1]]$neet_07) ~ "w sierpniu",
+    (wojSzk$neet_mies_2f_waga[[1]]$neet_09 < wojSzk$neet_mies_2f_waga[[1]]$neet_07) & (wojSzk$neet_mies_2f_waga[[1]]$neet_09 < wojSzk$neet_mies_2f_waga[[1]]$neet_08) ~ "we wrześniu")
+  
+  mies_wart = case_when(
+    mies_min %in% "w lipcu" ~ wojSzk$neet_mies_2f_waga[[1]]$neet_07,
+    mies_min %in% "w sierpniu" ~ wojSzk$neet_mies_2f_waga[[1]]$neet_08,
+    mies_min %in% "we wrześniu" ~ wojSzk$neet_mies_2f_waga[[1]]$neet_09)
+
+  cat(
+    "Odsetek biernych zawodowo absolwentów ",
+    szkola$formy_2f[[1]]$szkola_lmn,
+    " z województwa ",
+    szkola$formy_2f[[1]]$woj_nazwa_dop,
+    " w ciągu rozpatrywanego okresu był najniższy ",
+    mies_min,
+    " - wynosił wówczas ",
+    round(mies_wart * 100),
+    "%.\n\n",
+    sep = ""
+  )
+} else if ((wojSzk$neet_mies_2f_waga[[1]]$neet_07 == wojSzk$neet_mies_2f_waga[[1]]$neet_08) & (wojSzk$neet_mies_2f_waga[[1]]$neet_07 == wojSzk$neet_mies_2f_waga[[1]]$neet_09) & (wojSzk$neet_mies_2f_waga[[1]]$neet_08 == wojSzk$neet_mies_2f_waga[[1]]$neet_09)) {
+  cat("Odsetek biernych zawodowo absolwentów ",
+      szkola$formy_2f[[1]]$szkola_lmn,
+      " z województwa ",
+      szkola$formy_2f[[1]]$woj_nazwa_dop,
+      "nie różnił się w zależności od miesiąca.\n\n",
+      sep = "")
+}
+```
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$neet_mies_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = paste0(round(value * 100), "%"),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo),
+         name = c("2020.07", "2020.08", "2020.09"))
+tab2 = as.data.frame(polska$neet_mies_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = paste0(round(value * 100), "%"),
+         typ = "Polska",
+         name = c("2020.07", "2020.08", "2020.09"))
+
+tab = rbind(tab1, tab2)
+tab$typ = with(tab, reorder(typ, desc(typ)))
+
+wykres = ggplot(tab, aes(x = name, y = value, colour = typ, group = reorder(typ, typ))) +
+  geom_point(aes(shape = typ, color = typ), size = 2) +
+  geom_line(aes(linetype = typ, color = typ), size = 1) +
+  ylab(NULL) + 
+  xlab("Miesiąc") +
+  labs(title = paste0(
+    "Wykres ", wyk_num(),
+    ": Odsetek absolwentów, którzy w danym miesiącu pozostawali bierni\nedukacyjnie i zawodowo"),
+    fill = NULL) +
+  scale_y_continuous(labels = scales::percent,
+                     limits = c(0, 1),
+                     breaks = seq(0, 1,by = 0.2)) +
+  theme(legend.title = element_blank(),
+        plot.title = element_text(size = 12),
+        panel.background = element_rect(fill = "white"),
+        panel.grid.major = element_line(color = "lightgray"),
+        plot.title.position = "plot") +
+  geom_rect(xmin = 0.5, xmax = 3.5, ymin = 0, ymax = 1, colour = "black", alpha = 0, size = 0.25) +
+  scale_shape_manual(values = c(1, 0)) +
+  scale_linetype_manual(values = c(1, 2))
+
+print(wykres)
+
+cat("Dane z wykresu przedstawiono szczegółowo w poniższej tabeli.\n\n")
+
+woj = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo)
+
+tab1 %>% 
+  left_join(tab2, by = "name") %>% 
+  select(-contains(c("typ", "lab"))) %>% 
+  mutate(xx = paste0(round(value.x * 100), "%"),
+         yy = paste0(round(value.y * 100), "%")) %>% 
+  select(-contains("value")) %>% 
+  kable("latex", booktabs = TRUE,
+        col.names = NULL, linesep = "",
+        align = "lcc") %>%
+  kable_styling(position = wyrownanieTabWykr,
+                latex_options = "hold_position") %>% 
+  add_header_above(c(" ", setNames(1, woj), "Polska" = 1))
+```
+
+## 2.4. Sytuacja edukacyjno-zawodowa absolwentów w październiku 2020
+
+W październiku 2020 roku `r round(wojSzk$status_2020_10_waga[[1]]$nauka_praca * 100)`% objętych badaniem absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z `r szkola$formy_2f[[1]]$woj_nazwa_dop`, poświęciło po co najmniej dwa tygodnie zarówno na pracę zarobkową, jak i na dalszą naukę. Z kolei `r round(wojSzk$status_2020_10_waga[[1]]$tylko_praca * 100)`% pracowało zarobkowo nie kontynuując nauki, a `r round(wojSzk$status_2020_10_waga[[1]]$tylko_nauka * 100)`% uczestniczyło w edukacji, ale nie pracowało. Ani dwutygodniowego okresu pracy zarobkowej, ani takiego okresu nauki, nie miało w październiku `r round(wojSzk$status_2020_10_waga[[1]]$brak_nauka_brak_praca * 100)`%.
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+if (szkola$TYP %in% 1) {
+  cat(
+    "\\textcolor{gray}{Dla absolwentów wszystkich szkół rozpatrywano sytuację w październiku 2020 roku."
+  )
+} else {
+  cat(
+    "\\textcolor{gray}{Dla absolwentów wszystkich szkół rozpatrywano sytuację w październiku 2020 roku, żeby uwzględnić ewentualne rozpoczynanie nauki na studiach po ukończeniu techników i szkół policealnych."
+  )
+}
+
+if (wojSzk$status_2020_10_waga[[1]]$nie_dotyczy_liczba != 0 & polska$status_2020_10_waga[[1]]$nie_dotyczy_liczba %in% 0) {
+  cat(
+   " Jednak ponieważ część absolwentów wypełniła ankiety w październiku (a respondenci odnosili się do miesięcy poprzedzających miesiąc, w którym wypełniali ankietę), liczba respondentów, na których odpowiedziach opierają się wyniki dotyczące absolwentów ",
+   szkola$formy_2f[[1]]$szkola_lmn,
+   " z województwa ",
+   szkola$formy_2f[[1]]$woj_nazwa_dop,
+   " jest mniejsza, niż w przypadku wyników prezentowanych we wcześniejszej części raportu.}\n\n"
+  )
+} else if (wojSzk$status_2020_10_waga[[1]]$nie_dotyczy_liczba %in% 0 & polska$status_2020_10_waga[[1]]$nie_dotyczy_liczba != 0) {
+  cat(
+    " Jednak ponieważ część absolwentów wypełniła ankiety w październiku (a respondenci odnosili się do miesięcy poprzedzających miesiąc, w którym wypełniali ankietę), liczba respondentów, na których odpowiedziach opierają się wyniki dotyczące absolwentów z całego kraju jest mniejsza, niż w przypadku wyników prezentowanych we wcześniejszej części raportu.}\n\n",
+    sep = ""
+  )
+} else if (wojSzk$status_2020_10_waga[[1]]$nie_dotyczy_liczba != 0 & polska$status_2020_10_waga[[1]]$nie_dotyczy_liczba != 0) {
+  cat(
+    " Jednak ponieważ część absolwentów wypełniła ankiety w październiku (a respondenci odnosili się do miesięcy poprzedzających miesiąc, w którym wypełniali ankietę), liczba respondentów, na których odpowiedziach opierają się wyniki dotyczące absolwentów ",
+    szkola$formy_2f[[1]]$szkola_lmn,
+    " z województwa ",
+    szkola$formy_2f[[1]]$woj_nazwa_dop,
+    " oraz absolwentów z całego kraju jest mniejsza, niż w przypadku wyników prezentowanych we wcześniejszej części raportu.}\n\n",
+    sep = ""
+  )
+} else if (wojSzk$status_2020_10_waga[[1]]$nie_dotyczy_liczba %in% 0 & polska$status_2020_10_waga[[1]]$nie_dotyczy_liczba %in% 0) {
+  cat( 
+    "}\n\n"
+    )
+}
+```
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$status_2020_10_waga[[1]]) %>% 
+  select(-c(n, etykieta, nie_dotyczy_liczba)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo),
+         name = c("Tylko pracowali",
+                  "Tylko się uczyli",
+                  "Uczyli się i pracowali",
+                  "Nie uczyli się ani nie pracowali"))
+tab2 = as.data.frame(polska$status_2020_10_waga[[1]]) %>% 
+  select(-c(n, etykieta, nie_dotyczy_liczba)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = "Polska",
+         name = c("Tylko pracowali",
+                  "Tylko się uczyli",
+                  "Uczyli się i pracowali",
+                  "Nie uczyli się ani nie pracowali"))
+
+tab = rbind(tab1, tab2)
+
+ggplot(tab, aes(x = reorder(typ, typ), y = value, fill = name)) +
+  geom_bar(width = 0.75, stat = "identity", colour = "white") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("#fa9fb5", "#f44b8f", "#b20174", "#5e015c"), guide = guide_legend(reverse = TRUE)) +
+  labs(fill = NULL,
+       title = paste0(
+         "Wykres ", wyk_num(),
+         ": Sytuacja edukacyjno-zawodowa absolwentów w październiku 2020\nroku"
+       )) +
+  geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3,
+            colour = "#ffffff") +
+  ylab(NULL) +
+  xlab(NULL) +
+  coord_flip() +
+  theme(legend.position = "right",
+        panel.background = element_rect(fill = "white"),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(size = 12))
+```
+
+\textcolor{gray}{\relscale{0.75}Wykres przedstawia rozkład zmiennej utworzonej na podstawie pytań: “Proszę spojrzeć na poniższy kalendarz i zaznaczyć miesiące, w których w sumie przez co najmniej dwa tygodnie (bez względu na liczbę godzin w tygodniu): (...) uczył(a) się Pan(i) w szkole, na kursie lub na studiach?; pracował(a) Pan(i) zarobkowo?”. Respondenci, w odniesieniu do każdego miesiąca, wskazywali odpowiedź “Tak” lub “Nie”. Wykres uwzględnia odpowiedzi dotyczące października, udzielone przez `r round(wojSzk$status_2020_10[[1]]$n)` absolwentów `r szkola$formy_2f[[1]]$szkola_lm` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop` oraz `r round(polska$status_2020_10[[1]]$n)` absolwentów tego samego typu szkół z całego kraju.}
+
+Dane z wykresu przedstawiono szczegółowo w poniższej tabeli.
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$status_2020_10_waga[[1]]) %>% 
+  select(-c(n, etykieta, nie_dotyczy_liczba)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo),
+         name = c("Tylko pracowali",
+                  "Tylko się uczyli",
+                  "Uczyli się i pracowali",
+                  "Nie uczyli się ani nie pracowali"))
+tab2 = as.data.frame(polska$status_2020_10_waga[[1]]) %>% 
+  select(-c(n, etykieta, nie_dotyczy_liczba)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = "Polska",
+         name = c("Tylko pracowali",
+                  "Tylko się uczyli",
+                  "Uczyli się i pracowali",
+                  "Nie uczyli się ani nie pracowali"))
+
+woj = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo)
+
+tab1 %>% 
+  left_join(tab2, by = "name") %>% 
+  select(-contains(c("typ", "lab"))) %>% 
+  mutate(xx = paste0(round(value.x * 100), "%"),
+         yy = paste0(round(value.y * 100), "%")) %>% 
+  select(-contains("value")) %>% 
+  arrange(desc(name)) %>% 
+  kable("latex", booktabs = TRUE,
+        col.names = NULL, linesep = "",
+        align = "lcc") %>%
+  kable_styling(position = wyrownanieTabWykr,
+                latex_options = "hold_position") %>% 
+  add_header_above(c("Absolwenci którzy:", setNames(1, woj), "Polska" = 1))
+```
+
+## 2.5. Ścieżki kontynuowania edukacji
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+if (szkola$TYP %in% 3) {
+  cat(
+    "Pomiędzy lipcem 2020 roku a momentem wypełnienia ankiety (badanie było realizowane w okresie od października 2020 do stycznia 2021 roku), spośród absolwentów ",
+    szkola$formy_2f[[1]]$szkola_lmn,
+    " z województwa ",
+    szkola$formy_2f[[1]]$woj_nazwa_dop,
+    ", naukę na kwalifikacyjnym kursie zawodowym rozpoczęło ",
+    round(wojSzk$kontyn_eduk_2f_waga[[1]]$kkz * 100),
+    "%.\n\n",
+    sep = ""
+  )
+  
+  tab1 = as.data.frame(wojSzk$kontyn_eduk_2f_waga[[1]]) %>% 
+    select(rozklad = kkz) %>% 
+    mutate(lab = paste0(round(rozklad * 100), "%"),
+           typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo))
+  
+  tab2 = as.data.frame(polska$kontyn_eduk_2f_waga[[1]]) %>% 
+    select(rozklad = kkz) %>% 
+    mutate(lab = paste0(round(rozklad * 100), "%"),
+           typ = "Polska")
+  
+  tab1_2 = rbind(tab1, tab2)
+  
+  wykres1 = ggplot(tab1_2, aes(x = reorder(typ, typ), y = rozklad)) +
+    geom_bar(width = 0.75, stat = "identity", colour = "white", fill = "#f768a1") +
+    scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+    labs(fill = NULL,
+         title = paste0(
+           "Wykres ", wyk_num(),
+           ": Odsetek absolwentów, którzy po ukończeniu szkoły policealnej\nrozpoczęli naukę na kwalifikacyjnym kursie zawodowym"
+         )) +
+    geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3, hjust = ifelse(round(tab1_2$rozklad, 2) < 0.05, -1.3, 0.5)) +
+    ylab(NULL) +
+    xlab(NULL) +
+    coord_flip() +
+    theme(legend.position = "none",
+          panel.background = element_rect(fill = "white"),
+          axis.ticks.y = element_blank(),
+          axis.ticks.x = element_blank(),
+          plot.title.position = "plot",
+          plot.title = element_text(size = 12)) +
+    geom_rect(xmin = 0.5, xmax = 2.5, ymin = 0, ymax = 1, colour = "black", alpha = 0, size = 0.25)
+  print(wykres1)
+  
+  cat(
+    "\n\n\\textcolor{gray}{\\relscale{0.75}Wykres przedstawia odpowiedzi ",
+    round(wojSzk$kontyn_eduk_2f_waga[[1]]$n_tech_spolic),
+    " absolwentów ",
+    szkola$formy_2f[[1]]$szkola_lmn,
+    " z województwa ",
+    szkola$formy_2f[[1]]$woj_nazwa_dop,
+    " oraz ",
+    round(polska$kontyn_eduk_2f_waga[[1]]$n_tech_spolic),
+    " absolwentów tego samego typu szkół z całego kraju. Respondentom zadano pytanie “Czy po zakończeniu nauki w (...) szkole policealnej uczestniczył(a) Pan(i) w rekrutacji: (...) do szkoły policealnej?”. Respondenci wskazywali odpowiedź “Tak i rozpocząłem(a) tam naukę”, “Tak, ale nie rozpocząłem(am) tam nauki” lub “Nie”. Wykres uwzględnia pierwszą z tych odpowiedzi.}\n\n",
+    sep = ""
+  )
+  
+  # tabela1 = tab1 %>% 
+  #   left_join(tab2, by = "name") %>% 
+  #   select(-contains(c("typ", "lab"))) %>% 
+  #   mutate(xx = paste0(round(value.x * 100), "%"),
+  #          yy = paste0(round(value.y * 100), "%")) %>% 
+  #   select(-contains("value")) %>% 
+  #   arrange(desc(name)) %>% 
+  #   kable("latex", booktabs = TRUE,
+  #         col.names = NULL, linesep = "",
+  #         align = "lcc") %>%
+  #   kable_styling(position = wyrownanieTabWykr,
+  #                 latex_options = "hold_position") %>% 
+  #   add_header_above(c(" ", "Państwa szkoła" = 1, "Pozostałe szkoły z województwa" = 1))
+  # 
+  # print(tabela1)
+  
+  cat("Studentami zostało  ",
+      round(wojSzk$kontyn_eduk_2f_waga[[1]]$studia * 100),
+      "% absolwentów szkół policealnych ",
+      szkola$formy_2f[[1]]$woj_nazwa_dop,
+      ", z którymi przeprowadzono badanie.\n\n",
+      sep = ""
+  )
+  
+  # Wykres studia
+  tab3 = as.data.frame(wojSzk$kontyn_eduk_2f_waga[[1]]) %>% 
+    select(rozklad = studia) %>% 
+    mutate(lab = paste0(round(rozklad * 100), "%"),
+           typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo))
+  
+  tab4 = as.data.frame(polska$kontyn_eduk_2f_waga[[1]]) %>% 
+    select(rozklad = studia) %>% 
+    mutate(lab = paste0(round(rozklad * 100), "%"),
+           typ = "Polska")
+  
+  tab3_4 = rbind(tab3, tab4)
+  
+  wykres2 = ggplot(tab3_4, aes(x = reorder(typ, typ), y = rozklad)) +
+    geom_bar(width = 0.75, stat = "identity", colour = "white", fill = "#f768a1") +
+    scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+    labs(fill = NULL,
+         title = paste0(
+           "Wykres ", wyk_num(),
+           ": Odsetek absolwentów, którzy po ukończeniu szkoły policealnej\nkontynuowali naukę na studiach wyższych"
+         )) +
+    geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3, hjust = ifelse(round(tab3_4$rozklad, 2) < 0.05, -1.3, 0.5)) +
+    ylab(NULL) +
+    xlab(NULL) +
+    coord_flip() +
+    theme(legend.position = "none",
+          panel.background = element_rect(fill = "white"),
+          axis.ticks.y = element_blank(),
+          axis.ticks.x = element_blank(),
+          plot.title.position = "plot",
+          plot.title = element_text(size = 12)) +
+    geom_rect(xmin = 0.5, xmax = 2.5, ymin = 0, ymax = 1, colour = "black", alpha = 0, size = 0.25)
+  print(wykres2)
+}
+```
+
+<!-- ROZDZIAŁ TYLKO DLA SZKÓŁ BRANŻOWYCH -->
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+if (szkola$TYP %in% 1) {
+  cat(
+    "Pomiędzy lipcem 2020 roku a momentem wypełnienia ankiety (badanie było realizowane w okresie od października 2020 do stycznia 2021 roku), spośród absolwentów ",
+    szkola$formy_2f[[1]]$szkola_lmn,
+    " z województwa ",
+    szkola$formy_2f[[1]]$woj_nazwa_dop,
+    " naukę w szkole branżowej drugiego stopnia, w liceum dla dorosłych lub na kwalifikacyjnym kursie zawodowym rozpoczęło ",
+    round(wojSzk$kontyn_eduk_2f_waga[[1]]$dowolna_forma * 100),
+    "%.\n\n",
+    sep = ""
+  )
+  
+  # Wykres dowolna forma
+  tab1 = as.data.frame(wojSzk$kontyn_eduk_2f_waga[[1]]) %>% 
+    select(rozklad = dowolna_forma) %>% 
+    mutate(lab = paste0(round(rozklad * 100), "%"),
+           typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo))
+  
+  tab2 = as.data.frame(polska$kontyn_eduk_2f_waga[[1]]) %>% 
+    select(rozklad = dowolna_forma) %>% 
+    mutate(lab = paste0(round(rozklad * 100), "%"),
+           typ = "Polska")
+  
+  tab1_2 = rbind(tab1, tab2)
+  
+  wykres1 = ggplot(tab1_2, aes(x = reorder(typ, typ), y = rozklad)) +
+    geom_bar(width = 0.75, stat = "identity", colour = "white", fill = "#f768a1") +
+    scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+    labs(fill = NULL,
+         title = paste0(
+           "Wykres ", wyk_num(),
+           ": Odsetek absolwentów, którzy po ukończeniu szkoły branżowej\npierwszego stopnia kontynuowali naukę w dowolnej formie"
+         )) +
+    geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3, hjust = ifelse(round(tab1_2$rozklad, 2) < 0.05, -1.3, 0.5)) +
+    ylab(NULL) +
+    xlab(NULL) +
+    coord_flip() +
+    theme(legend.position = "none",
+          panel.background = element_rect(fill = "white"),
+          axis.ticks.y = element_blank(),
+          axis.ticks.x = element_blank(),
+          plot.title.position = "plot",
+          plot.title = element_text(size = 12)) +
+    geom_rect(xmin = 0.5, xmax = 2.5, ymin = 0, ymax = 1, colour = "black", alpha = 0, size = 0.25)
+  print(wykres1)
+  
+  cat(
+    "\n\n\\textcolor{gray}{\\relscale{0.75}Wykres przedstawia odpowiedzi ",
+    round(wojSzk$kontyn_eduk_2f_waga[[1]]$n_bs1),
+    " absolwentów szkół branżowych pierwszego stopnia z województwa ",
+    szkola$formy_2f[[1]]$woj_nazwa_dop,
+    " oraz ",
+    round(polska$kontyn_eduk_2f_waga[[1]]$n_bs1),
+    " absolwentów tego samego typu szkół z całego kraju. Respondentom zadano pytania “Czy po zakończeniu nauki w szkole branżowej uczestniczył(a) Pan(i) w rekrutacji: (...) do szkoły branżowej drugiego stopnia?; liceum dla dorosłych?; na kwalifikacyjny kurs zawodowy?”. Respondenci wskazywali odpowiedź “Tak i rozpocząłem(a) tam naukę”, “Tak, ale nie rozpocząłem(am) tam nauki” lub “Nie”. Wykres uwzględnia pierwszą z tych odpowiedzi.}\n\n",
+    "W szkole branżowej drugiego stopnia podjęło dalszą naukę ",
+    round(wojSzk$kontyn_eduk_2f_waga[[1]]$bs2 * 100),
+    "% absolwentów szkół branżowych pierwszego stopnia z województwa ",
+    szkola$formy_2f[[1]]$woj_nazwa_dop,
+    ", z którymi zostało przeprowadzone badanie.\n\n",
+    sep = ""
+  )
+  
+  # Wykres branżowa szkoła 2. stopnia
+  tab3 = as.data.frame(wojSzk$kontyn_eduk_2f_waga[[1]]) %>% 
+    select(rozklad = bs2) %>% 
+    mutate(lab = paste0(round(rozklad * 100), "%"),
+           typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo))
+  
+  tab4 = as.data.frame(polska$kontyn_eduk_2f_waga[[1]]) %>% 
+    select(rozklad = bs2) %>% 
+    mutate(lab = paste0(round(rozklad * 100), "%"),
+           typ = "Polska")
+  
+  tab3_4 = rbind(tab3, tab4)
+  
+  wykres2 = ggplot(tab3_4, aes(x = reorder(typ, typ), y = rozklad)) +
+    geom_bar(width = 0.75, stat = "identity", colour = "white", fill = "#f768a1") +
+    scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+    labs(fill = NULL,
+         title = paste0(
+           "Wykres ", wyk_num(),
+           ": Odsetek absolwentów, którzy po ukończeniu szkoły branżowej\nI stopnia  kontynuowali naukę w szkole branżowej II stopnia"
+         )) +
+    geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3, hjust = ifelse(round(tab3_4$rozklad, 2) < 0.05, -1.3, 0.5)) +
+    ylab(NULL) +
+    xlab(NULL) +
+    coord_flip() +
+    theme(legend.position = "none",
+          panel.background = element_rect(fill = "white"),
+          axis.ticks.y = element_blank(),
+          axis.ticks.x = element_blank(),
+          plot.title.position = "plot",
+          plot.title = element_text(size = 12)) +
+    geom_rect(xmin = 0.5, xmax = 2.5, ymin = 0, ymax = 1, colour = "black", alpha = 0, size = 0.25)
+  print(wykres2)
+  
+  # wykres liceum dla dorosłych
+  cat(
+    "\n\nW liceum dla dorosłych kontynuowało naukę ",
+    round(wojSzk$kontyn_eduk_2f_waga[[1]]$lic_dor * 100),
+    "% objętych badaniem absolwentów szkół branżowych pierwszego stopnia z województwa ",
+    szkola$formy_2f[[1]]$woj_nazwa_dop,
+    ".\n\n",
+    sep = ""
+  )
+  
+  tab5 = as.data.frame(wojSzk$kontyn_eduk_2f_waga[[1]]) %>% 
+    select(rozklad = lic_dor) %>% 
+    mutate(lab = paste0(round(rozklad * 100), "%"),
+           typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo))
+  
+  tab6 = as.data.frame(polska$kontyn_eduk_2f_waga[[1]]) %>% 
+    select(rozklad = lic_dor) %>% 
+    mutate(lab = paste0(round(rozklad * 100), "%"),
+           typ = "Polska")
+  
+  tab5_6 = rbind(tab5, tab6)
+  
+  wykres3 = ggplot(tab5_6, aes(x = reorder(typ, typ), y = rozklad)) +
+    geom_bar(width = 0.75, stat = "identity", colour = "white", fill = "#f768a1") +
+    scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+    labs(fill = NULL,
+         title = paste0(
+           "Wykres ", wyk_num(),
+           ": Odsetek absolwentów, którzy po ukończeniu szkoły branżowej\nI stopnia kontynuowali naukę w liceum dla dorosłych"
+         )) +
+    geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3, hjust = ifelse(round(tab5_6$rozklad, 2) < 0.05, -1.3, 0.5)) +
+    ylab(NULL) +
+    xlab(NULL) +
+    coord_flip() +
+    theme(legend.position = "none",
+          panel.background = element_rect(fill = "white"),
+          axis.ticks.y = element_blank(),
+          axis.ticks.x = element_blank(),
+          plot.title.position = "plot",
+          plot.title = element_text(size = 12)) +
+    geom_rect(xmin = 0.5, xmax = 2.5, ymin = 0, ymax = 1, colour = "black", alpha = 0, size = 0.25)
+  print(wykres3)
+  
+  # wykres Kwalifikacyjne Kursy Zawodowe
+  cat(
+    "Kwalifikacyjne kursy zawodowe okazały się formą kontynuowania nauki wybraną przez ",
+    round(wojSzk$kontyn_eduk_2f_waga[[1]]$kkz * 100),
+    "% absolwentów szkół branżowych pierwszego stopnia z województwa ",
+    szkola$formy_2f[[1]]$woj_nazwa_dop,
+    ", którzy wypełnili ankiety.\n\n",
+    sep = ""
+  )
+  
+  tab7 = as.data.frame(wojSzk$kontyn_eduk_2f_waga[[1]]) %>% 
+    select(rozklad = kkz) %>% 
+    mutate(lab = paste0(round(rozklad * 100), "%"),
+           typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo))
+  
+  tab8 = as.data.frame(polska$kontyn_eduk_2f_waga[[1]]) %>% 
+    select(rozklad = kkz) %>% 
+    mutate(lab = paste0(round(rozklad * 100), "%"),
+           typ = "Polska")
+  
+  tab7_8 = rbind(tab7, tab8)
+  
+  wykres4 = ggplot(tab7_8, aes(x = reorder(typ, typ), y = rozklad)) +
+    geom_bar(width = 0.75, stat = "identity", colour = "white", fill = "#f768a1") +
+    scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+    labs(fill = NULL,
+         title = paste0(
+           "Wykres ", wyk_num(),
+           ": Odsetek absolwentów, którzy po ukończeniu szkoły branżowej\npierwszego stopnia kontynuowali naukę na Kwalifikacyjnym\nKursie Zawodowym"
+         )) +
+    geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3, hjust = ifelse(round(tab7_8$rozklad, 2) < 0.05, -1.3, 0.5)) +
+    ylab(NULL) +
+    xlab(NULL) +
+    coord_flip() +
+    theme(legend.position = "none",
+          panel.background = element_rect(fill = "white"),
+          axis.ticks.y = element_blank(),
+          axis.ticks.x = element_blank(),
+          plot.title.position = "plot",
+          plot.title = element_text(size = 12)) +
+    geom_rect(xmin = 0.5, xmax = 2.5, ymin = 0, ymax = 1, colour = "black", alpha = 0, size = 0.25)
+  print(wykres4)
+}
+```
+
+<!-- ROZDZIAŁ TYLKO DLA TECHNIKÓW -->
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+if (szkola$TYP %in% 2) {
+  cat(
+    "Pomiędzy lipcem 2020 roku a momentem wypełnienia ankiety (badanie było realizowane w okresie od października 2020 do stycznia 2021 roku), spośród absolwentów techników z województwa ",
+    szkola$formy_2f[[1]]$woj_nazwa_dop,
+    ", naukę w szkole policealnej, na studiach lub na kwalifikacyjnym kursie zawodowym rozpoczęło ",
+    round(wojSzk$kontyn_eduk_2f_waga[[1]]$dowolna_forma * 100),
+    "%.\n\n",
+    sep = ""
+  )
+  
+  # Wykres dowolna forma
+  tab1 = as.data.frame(wojSzk$kontyn_eduk_2f_waga[[1]]) %>% 
+    select(rozklad = dowolna_forma) %>% 
+    mutate(lab = paste0(round(rozklad * 100), "%"),
+           typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo))
+  
+  tab2 = as.data.frame(polska$kontyn_eduk_2f_waga[[1]]) %>% 
+    select(rozklad = dowolna_forma) %>% 
+    mutate(lab = paste0(round(rozklad * 100), "%"),
+           typ = "Polska")
+  
+  tab1_2 = rbind(tab1, tab2)
+  
+  wykres1 = ggplot(tab1_2, aes(x = reorder(typ, typ), y = rozklad)) +
+    geom_bar(width = 0.75, stat = "identity", colour = "white", fill = "#f768a1") +
+    scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+    labs(fill = NULL,
+         title = paste0(
+           "Wykres ", wyk_num(),
+           ": Odsetek absolwentów, którzy po ukończeniu technikum\nkontynuowali naukę w dowolnej formie"
+         )) +
+    geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3, hjust = ifelse(round(tab1_2$rozklad, 2) < 0.05, -1.3, 0.5)) +
+    ylab(NULL) +
+    xlab(NULL) +
+    coord_flip() +
+    theme(legend.position = "none",
+          panel.background = element_rect(fill = "white"),
+          axis.ticks.y = element_blank(),
+          axis.ticks.x = element_blank(),
+          plot.title.position = "plot",
+          plot.title = element_text(size = 12)) +
+    geom_rect(xmin = 0.5, xmax = 2.5, ymin = 0, ymax = 1, colour = "black", alpha = 0, size = 0.25)
+  print(wykres1)
+  
+  cat(
+    "\n\n\\textcolor{gray}{\\relscale{0.75}Wykres przedstawia odpowiedzi ",
+    round(wojSzk$kontyn_eduk_2f_waga[[1]]$n_tech_spolic),
+    " absolwentów szkół techników z województwa ",
+    szkola$formy_2f[[1]]$woj_nazwa_dop,
+    " oraz ",
+    round(polska$kontyn_eduk_2f_waga[[1]]$n_tech_spolic),
+    " absolwentów tego samego typu szkół z całego kraju. Respondentom zadano pytanie “Czy po zakończeniu nauki w technikum] uczestniczył(a) Pan(i) w rekrutacji: (...) do szkoły policealnej?; do szkoły wyższej (na studia)?; na kwalifikacyjny kurs zawodowy?”. Respondenci wskazywali odpowiedź “Tak i rozpocząłem(a) tam naukę”, “Tak, ale nie rozpocząłem(am) tam nauki” lub “Nie”. Wykres uwzględnia pierwszą z tych odpowiedzi.}\n\n",
+    "Studentami zostało ",
+    round(wojSzk$kontyn_eduk_2f_waga[[1]]$studia * 100),
+    "% absolwentów techników z województwa ",
+    szkola$formy_2f[[1]]$woj_nazwa_dop,
+    ", z którymi przeprowadzono badanie.\n\n",
+    sep = ""
+  )
+  
+  # Wykres studia
+  tab3 = as.data.frame(wojSzk$kontyn_eduk_2f_waga[[1]]) %>% 
+    select(rozklad = studia) %>% 
+    mutate(lab = paste0(round(rozklad * 100), "%"),
+           typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo))
+  
+  tab4 = as.data.frame(polska$kontyn_eduk_2f_waga[[1]]) %>% 
+    select(rozklad = studia) %>% 
+    mutate(lab = paste0(round(rozklad * 100), "%"),
+           typ = "Polska")
+  
+  tab3_4 = rbind(tab3, tab4)
+  
+  wykres2 = ggplot(tab3_4, aes(x = reorder(typ, typ), y = rozklad)) +
+    geom_bar(width = 0.75, stat = "identity", colour = "white", fill = "#f768a1") +
+    scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+    labs(fill = NULL,
+         title = paste0(
+           "Wykres ", wyk_num(),
+           ": Odsetek absolwentów, którzy po ukończeniu technikum\nkontynuowali naukę na studiach wyższych"
+         )) +
+    geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3, hjust = ifelse(round(tab3_4$rozklad, 2) < 0.05, -1.3, 0.5)) +
+    ylab(NULL) +
+    xlab(NULL) +
+    coord_flip() +
+    theme(legend.position = "none",
+          panel.background = element_rect(fill = "white"),
+          axis.ticks.y = element_blank(),
+          axis.ticks.x = element_blank(),
+          plot.title.position = "plot",
+          plot.title = element_text(size = 12)) +
+    geom_rect(xmin = 0.5, xmax = 2.5, ymin = 0, ymax = 1, colour = "black", alpha = 0, size = 0.25)
+  print(wykres2)
+  
+  # wykres szkoła policealna
+  cat(
+    "\n\nW szkole policealnej podjęło dalszą naukę ",
+    round(wojSzk$kontyn_eduk_2f_waga[[1]]$spolic * 100),
+    "% absolwentów techników z województwa ",
+    szkola$formy_2f[[1]]$woj_nazwa_dop,
+    ", objętych badaniem.\n\n",
+    sep = ""
+  )
+  
+  tab5 = as.data.frame(wojSzk$kontyn_eduk_2f_waga[[1]]) %>% 
+    select(rozklad = spolic) %>% 
+    mutate(lab = paste0(round(rozklad * 100), "%"),
+           typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo))
+  
+  tab6 = as.data.frame(polska$kontyn_eduk_2f_waga[[1]]) %>% 
+    select(rozklad = spolic) %>% 
+    mutate(lab = paste0(round(rozklad * 100), "%"),
+           typ = "Polska")
+  
+  tab5_6 = rbind(tab5, tab6)
+  
+  wykres3 = ggplot(tab5_6, aes(x = reorder(typ, typ), y = rozklad)) +
+    geom_bar(width = 0.75, stat = "identity", colour = "white", fill = "#f768a1") +
+    scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+    labs(fill = NULL,
+         title = paste0(
+           "Wykres ", wyk_num(),
+           ": Odsetek absolwentów, którzy po ukończeniu technikum\nkontynuowali naukę w szkole policealnej"
+         )) +
+    geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3, hjust = ifelse(round(tab5_6$rozklad, 2) < 0.05, -1.3, 0.5)) +
+    ylab(NULL) +
+    xlab(NULL) +
+    coord_flip() +
+    theme(legend.position = "none",
+          panel.background = element_rect(fill = "white"),
+          axis.ticks.y = element_blank(),
+          axis.ticks.x = element_blank(),
+          plot.title.position = "plot",
+          plot.title = element_text(size = 12)) +
+    geom_rect(xmin = 0.5, xmax = 2.5, ymin = 0, ymax = 1, colour = "black", alpha = 0, size = 0.25)
+  print(wykres3)
+  
+  # wykres Kwalifikacyjne Kursy Zawodowe
+  cat(
+    "Kwalifikacyjne kursy zawodowe okazały się formą kontynuowania nauki przez ",
+    round(wojSzk$kontyn_eduk_2f_waga[[1]]$kkz * 100),
+    "% absolwentów techników z województwa ",
+    szkola$formy_2f[[1]]$woj_nazwa_dop,
+    ", którzy wypełnili ankiety.\n\n",
+    sep = ""
+  )
+  
+  tab7 = as.data.frame(wojSzk$kontyn_eduk_2f_waga[[1]]) %>% 
+    select(rozklad = kkz) %>% 
+    mutate(lab = paste0(round(rozklad * 100), "%"),
+           typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo))
+  
+  tab8 = as.data.frame(polska$kontyn_eduk_2f_waga[[1]]) %>% 
+    select(rozklad = kkz) %>% 
+    mutate(lab = paste0(round(rozklad * 100), "%"),
+           typ = "Polska")
+  
+  tab7_8 = rbind(tab7, tab8)
+  
+  wykres4 = ggplot(tab7_8, aes(x = reorder(typ, typ), y = rozklad)) +
+    geom_bar(width = 0.75, stat = "identity", colour = "white", fill = "#f768a1") +
+    scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+    labs(fill = NULL,
+         title = paste0(
+           "Wykres ", wyk_num(),
+           ": Odsetek absolwentów, którzy po ukończeniu technikum\nkontynuowali naukę na Kwalifikacyjnym Kursie Zawodowym"
+         )) +
+    geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3, hjust = ifelse(round(tab7_8$rozklad, 2) < 0.05, -1.3, 0.5)) +
+    ylab(NULL) +
+    xlab(NULL) +
+    coord_flip() +
+    theme(legend.position = "none",
+          panel.background = element_rect(fill = "white"),
+          axis.ticks.y = element_blank(),
+          axis.ticks.x = element_blank(),
+          plot.title.position = "plot",
+          plot.title = element_text(size = 12)) +
+    geom_rect(xmin = 0.5, xmax = 2.5, ymin = 0, ymax = 1, colour = "black", alpha = 0, size = 0.25)
+  print(wykres4)
+}
+```
+
+`r ifelse(typDokumentu %in% "pdf", "\\newpage", "")`
+
+# 3. Praca zawodowa
+
+W momencie wypełniania ankiety pracowało zarobkowo `r round(wojSzk$praca_zarob_2f_waga[[1]]$ods_zarobki * 100)`% absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop`.
+
+\textcolor{gray}{W pytaniu uwzględniono pracę na etacie, ale także prace dorywcze, na własny rachunek, w indywidualnym gospodarstwie rolnym i wszelkie inne, w tym także prace bez pisemnej umowy.}
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$praca_zarob_2f_waga[[1]]) %>% 
+  select(rozklad = ods_zarobki) %>% 
+  mutate(lab = paste0(round(rozklad * 100), "%"),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo))
+
+tab2 = as.data.frame(polska$praca_zarob_2f_waga[[1]]) %>% 
+  select(rozklad = ods_zarobki) %>% 
+  mutate(lab = paste0(round(rozklad * 100), "%"),
+         typ = "Polska")
+
+tab = rbind(tab1, tab2)
+
+ggplot(tab, aes(x = reorder(typ, typ), y = rozklad)) +
+  geom_bar(width = 0.75, stat = "identity", colour = "white", fill = "#f768a1") +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+  labs(fill = NULL,
+       title = paste0(
+         "Wykres ", wyk_num(),
+         ": Odsetek absolwentów pracujących zarobkowo w momencie\nrealizacji badania"
+       )) +
+  geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3, hjust = ifelse(round(tab$rozklad, 2) < 0.05, -1.3, 0.5)) +
+  ylab(NULL) +
+  xlab(NULL) +
+  coord_flip() +
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = "white"),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(size = 12)) +
+  geom_rect(xmin = 0.5, xmax = 2.5, ymin = 0, ymax = 1, colour = "black", alpha = 0, size = 0.25)
+```
+
+\textcolor{gray}{\relscale{0.75}Wykres przedstawia odpowiedzi `r round(wojSzk$praca_zarob_2f_waga[[1]]$n)` absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop` oraz `r round(polska$praca_zarob_2f_waga[[1]]$n)` absolwentów tego typu szkół z całego kraju. Respondentom zadano pytanie “Czy obecnie pracuje Pan(i) zarobkowo? Chodzi tu nie tylko o pracę na etacie, ale także o prace dorywcze, na własny rachunek, w indywidualnym gospodarstwie rolnym i wszelkie inne, w tym także prace bez pisemnej umowy.” Respondenci wskazywali odpowiedź “Tak” lub “Nie”.}
+
+## 3.1. Zgodność pracy z wykształceniem
+
+Wykonywanie pracy przez co najmniej dwa tygodnie w okresie od lipca 2020 roku do momentu wypełnienia ankiety, w zawodzie, którego uczyli się w `r typ_szkoly_zgodnosc` zadeklarowało `r round(wojSzk$praca_zarob_zawod_2f_waga[[1]]$ods_zarobki_zawod * 100)`% absolwentów z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop`.
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$praca_zarob_zawod_2f_waga[[1]]) %>% 
+  select(rozklad = ods_zarobki_zawod) %>% 
+  mutate(lab = paste0(round(rozklad * 100), "%"),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo))
+
+tab2 = as.data.frame(polska$praca_zarob_zawod_2f_waga[[1]]) %>% 
+  select(rozklad = ods_zarobki_zawod) %>% 
+  mutate(lab = paste0(round(rozklad * 100), "%"),
+         typ = "Polska")
+
+tab = rbind(tab1, tab2)
+
+ggplot(tab, aes(x = reorder(typ, typ), y = rozklad)) +
+  geom_bar(width = 0.75, stat = "identity", colour = "white", fill = "#f768a1") +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+  labs(fill = NULL,
+       title = paste0(
+         "Wykres ", wyk_num(),
+         ": Odsetek absolwentów, którzy podjęli pracę zarobkową\nw wyuczonym zawodzie"
+       )) +
+  geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3, hjust = ifelse(round(tab$rozklad, 2) < 0.05, -1.3, 0.5)) +
+  ylab(NULL) +
+  xlab(NULL) +
+  coord_flip() +
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = "white"),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(size = 12)) +
+  geom_rect(xmin = 0.5, xmax = 2.5, ymin = 0, ymax = 1, colour = "black", alpha = 0, size = 0.25)
+```
+
+\textcolor{gray}{\relscale{0.75}Wykres przedstawia odpowiedzi `r round(wojSzk$praca_zarob_zawod_2f_waga[[1]]$n)` absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop` oraz `r round(polska$praca_zarob_zawod_2f_waga[[1]]$n)` absolwentów tego typu szkół z całego kraju. Respondentom zadano pytanie “Czy w okresie od lipca do [miesiąc poprzedzający miesiąc, w którym respondent wypełnia ankietę] 2020 roku w sumie przez co najmniej dwa tygodnie wykonywał(a) Pan(i) pracę zarobkową w: zawodzie [zawód, w którym kształcił się respondent]? (...)”. Respondenci wskazywali odpowiedź “Tak” lub “Nie”.}
+
+Natomiast `r round(wojSzk$praca_zarob_branza_2f_waga[[1]]$ods_zarobki_branza * 100)`% stwierdziło, że w tym okresie wprawdzie nie pracowali w wyuczonym zawodzie, ale pracowali w branży, do której ten zawód należy.
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$praca_zarob_branza_2f_waga[[1]]) %>% 
+  select(rozklad = ods_zarobki_branza) %>% 
+  mutate(lab = paste0(round(rozklad * 100), "%"),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo))
+
+tab2 = as.data.frame(polska$praca_zarob_branza_2f_waga[[1]]) %>% 
+  select(rozklad = ods_zarobki_branza) %>% 
+  mutate(lab = paste0(round(rozklad * 100), "%"),
+         typ = "Polska")
+
+tab = rbind(tab1, tab2)
+
+ggplot(tab, aes(x = reorder(typ, typ), y = rozklad)) +
+  geom_bar(width = 0.75, stat = "identity", colour = "white", fill = "#f768a1") +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 1)) +
+  labs(fill = NULL,
+       title = paste0(
+         "Wykres ", wyk_num(),
+         ": Odsetek absolwentów, którzy podjęli pracę zarobkową w zawodzie\ninnym niż wyuczony, ale należącym do tej samej branży"
+       )) +
+  geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3, hjust = ifelse(round(tab$rozklad, 2) < 0.05, -1.3, 0.5)) +
+  ylab(NULL) +
+  xlab(NULL) +
+  coord_flip() +
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = "white"),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(size = 12)) +
+  geom_rect(xmin = 0.5, xmax = 2.5, ymin = 0, ymax = 1, colour = "black", alpha = 0, size = 0.25)
+```
+
+\textcolor{gray}{\relscale{0.75}Wykres przedstawia odpowiedzi `r round(wojSzk$praca_zarob_branza_2f_waga[[1]]$n)` absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop` oraz `r round(polska$praca_zarob_branza_2f_waga[[1]]$n)` absolwentów tego typu szkół z całego kraju. Respondentom zadano pytanie “Czy w okresie od lipca do [miesiąc poprzedzający miesiąc, w którym respondent wypełnia ankietę] 2020 roku w sumie przez co najmniej dwa tygodnie wykonywał(a) Pan(i) pracę zarobkową w: zawodzie [zawód, w którym kształcił się respondent]?; innym zawodzie, ale w branży [branża, w której kształcił się respondent]. Respondenci wskazywali odpowiedź “Tak” lub “Nie”. Na wykresie uwzględniono respondentów, którzy odpowiedzieli przecząco na pytanie dotyczące zawodu ale twierdząco na pytanie dotyczące branży.}
+
+## 3.2. Zadowolenie z pracy
+
+### 3.2.1. Ogólne zadowolenie z pracy
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.align = wyrownanieTabWykr}
+zadowolenie = case_when(wojSzk$praca_zad_ogolnie_2f_waga[[1]]$zad_zdecyd_raczej > wojSzk$praca_zad_ogolnie_2f_waga[[1]]$nzad_zdecyd_raczej ~ "mniej",
+                        wojSzk$praca_zad_ogolnie_2f_waga[[1]]$nzad_zdecyd_raczej > wojSzk$praca_zad_ogolnie_2f_waga[[1]]$zad_zdecyd_raczej ~ "więcej"
+)
+
+cat(
+  "Spośród absolwentów ",
+  szkola$formy_2f[[1]]$szkola_lmn,
+  " z województwa ",
+  szkola$formy_2f[[1]]$woj_nazwa_dop,
+  ", którzy pracowali zarobkowo w momencie udziału w badaniu, ",
+  round(wojSzk$praca_zad_ogolnie_2f_waga[[1]]$zad_zdecyd_raczej * 100),
+  "% wyraziło ogólne zadowolenie ze swojej aktualnej pracy. Niezadowolonych było ",
+  zadowolenie,
+  ": ",
+  round(wojSzk$praca_zad_ogolnie_2f_waga[[1]]$nzad_zdecyd_raczej * 100),
+  "%",
+  sep = ""
+)
+
+if ((round(wojSzk$praca_zad_ogolnie_2f_waga[[1]]$ani_zad_ani_nzad * 100) + round(wojSzk$praca_zad_ogolnie_2f_waga[[1]]$trudno_pow * 100)) > 0) {
+  cat(
+    ". Pozostali wybrali odpowiedź pośrednią (",
+    round(wojSzk$praca_zad_ogolnie_2f_waga[[1]]$ani_zad_ani_nzad * 100),
+    "%) lub nie byli w stanie ocenić, na ile są zadowoleni (",
+    round(wojSzk$praca_zad_ogolnie_2f_waga[[1]]$trudno_pow * 100),
+    "%).\n\n",
+    sep = ""
+  )
+} else {
+  cat(".\n\n")
+}
+```
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE, fig.pos = "!H"}
+tab1 = as.data.frame(wojSzk$praca_zad_ogolnie_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo),
+         name = c("Zadowoleni",
+                  "Ani zadowoleni\nani niezadowoleni",
+                  "Niezadowoleni",
+                  "Trudno powiedzieć"))
+tab2 = as.data.frame(polska$praca_zad_ogolnie_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = "Polska",
+         name = c("Zadowoleni",
+                  "Ani zadowoleni\nani niezadowoleni",
+                  "Niezadowoleni",
+                  "Trudno powiedzieć"))
+
+tab = rbind(tab1, tab2)
+tab$name = factor(tab$name, levels = c("Zadowoleni",
+                                       "Ani zadowoleni\nani niezadowoleni",
+                                       "Niezadowoleni",
+                                       "Trudno powiedzieć"))
+
+wykres = ggplot(tab, aes(x = reorder(typ, typ), y = value, fill = reorder(name, desc(name)))) +
+  geom_bar(width = 0.75, stat = "identity", colour = "white") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("#808080", "#fa9fb5", "#c51b8a", "#5e015c"), guide = guide_legend(reverse = TRUE)) +
+  labs(fill = NULL,
+       title = paste0(
+         "Wykres ", wyk_num(),
+         ": Opinie absolwentów dotyczące ogólnego poziomu zadowolenia z\npodjętej pracy zarobkowej"
+       )) +
+  geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3,
+            colour = "#ffffff") +
+  ylab(NULL) +
+  xlab(NULL) +
+  coord_flip() +
+  theme(legend.position = "right",
+        panel.background = element_rect(fill = "white"),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(size = 12))
+print(wykres)
+
+cat(
+  "\\textcolor{gray}{\\relscale{0.75}Wykres przedstawia odpowiedzi ",
+  round(wojSzk$praca_zad_ogolnie_2f_waga[[1]]$n),
+  " absolwentów ",
+  szkola$formy_2f[[1]]$szkola_lmn,
+  " z województwa ",
+  szkola$formy_2f[[1]]$woj_nazwa_dop,
+  " oraz ",
+  round(polska$praca_zad_ogolnie_2f_waga[[1]]$n),
+  " absolwentów tego typu szkół z całego kraju. Respondentom zadano pytanie “Na ile jest Pan(i) zadowolony(a) ze swojej obecnej pracy… ogólnie, biorąc wszystko pod uwagę. [Jeżeli pracuje Pan(i) w kilku miejscach, to proszę odnieść się do tej pracy, która zajmuje Panu(i) najwięcej czasu]”. Respondenci wskazywali odpowiedź: “Zdecydowanie zadowolony(a)” , “Raczej zadowolony(a)”, “Ani zadowolony(a) ani niezadowolony(a)”, “Raczej niezadowolony(a)”, “Zdecydowanie niezadowolony(a)”, “Trudno powiedzieć”.}\n\n",
+  sep = "")
+
+woj = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo)
+
+tab1 %>% 
+  left_join(tab2, by = "name") %>% 
+  select(-contains(c("typ", "lab"))) %>% 
+  mutate(xx = paste0(round(value.x * 100), "%"),
+         yy = paste0(round(value.y * 100), "%")) %>% 
+  select(-contains("value")) %>% 
+  kable("latex", booktabs = TRUE,
+        col.names = NULL, linesep = "",
+        align = "lcc") %>%
+  kable_styling(position = wyrownanieTabWykr) %>% 
+  add_header_above(c(" ", setNames(1, woj), "Polska" = 1))
+```
+
+`r ifelse(typDokumentu %in% "pdf", "\\newpage", "")`
+
+### 3.2.2. Możliwości rozwoju zawodowego
+
+Z możliwości rozwoju zawodowego, jakie daje aktualnie wykonywana praca, zadowolonych było `r round(wojSzk$praca_zad_rozwoj_2f_waga[[1]]$zad_zdecyd_raczej * 100)`% spośród pracujących zarobkowo absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop`. Z kolei niezadowolonych pod tym względem było `r round(wojSzk$praca_zad_rozwoj_2f_waga[[1]]$nzad_zdecyd_raczej * 100)`%.
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$praca_zad_rozwoj_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo),
+         name = c("Zadowoleni",
+                  "Ani zadowoleni\nani niezadowoleni",
+                  "Niezadowoleni",
+                  "Trudno powiedzieć"))
+tab2 = as.data.frame(polska$praca_zad_rozwoj_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = "Polska",
+         name = c("Zadowoleni",
+                  "Ani zadowoleni\nani niezadowoleni",
+                  "Niezadowoleni",
+                  "Trudno powiedzieć"))
+
+tab = rbind(tab1, tab2)
+tab$name = factor(tab$name, levels = c("Zadowoleni",
+                                       "Ani zadowoleni\nani niezadowoleni",
+                                       "Niezadowoleni",
+                                       "Trudno powiedzieć"))
+
+wykres = ggplot(tab, aes(x = reorder(typ, typ), y = value, fill = reorder(name, desc(name)))) +
+  geom_bar(width = 0.75, stat = "identity", colour = "white") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("#808080", "#fa9fb5", "#c51b8a", "#5e015c"), guide = guide_legend(reverse = TRUE)) +
+  labs(fill = NULL,
+       title = paste0(
+         "Wykres ", wyk_num(),
+         ": Opinie absolwentów dotyczące poziomu zadowolenia z możliwości\nrozwoju zawodowego w podjętej pracy zarobkowej"
+       )) +
+  geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3,
+            colour = "#ffffff") +
+  ylab(NULL) +
+  xlab(NULL) +
+  coord_flip() +
+  theme(legend.position = "right",
+        panel.background = element_rect(fill = "white"),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(size = 12))
+print(wykres)
+
+cat(
+  "\\textcolor{gray}{\\relscale{0.75}Wykres przedstawia odpowiedzi ",
+  round(wojSzk$praca_zad_rozwoj_2f_waga[[1]]$n),
+  " absolwentów ",
+  szkola$formy_2f[[1]]$szkola_lmn,
+  " z województwa ",
+  szkola$formy_2f[[1]]$woj_nazwa_dop,
+  " oraz ",
+  round(polska$praca_zad_rozwoj_2f_waga[[1]]$n),
+  " absolwentów tego typu szkół z całego kraju. Respondentom zadano pytanie “Na ile jest Pan(i) zadowolony(a) ze swojej obecnej pracy… pod względem możliwości rozwoju umiejętności zawodowych. [Jeżeli pracuje Pan(i) w kilku miejscach, to proszę odnieść się do tej pracy, która zajmuje Panu(i) najwięcej czasu]”. Respondenci wskazywali odpowiedź: “Zdecydowanie zadowolony(a)” , “Raczej zadowolony(a)”, “Ani zadowolony(a) ani niezadowolony(a)”, “Raczej niezadowolony(a)”, “Zdecydowanie niezadowolony(a)”, “Trudno powiedzieć”}.\n\n",
+  sep = "")
+
+woj = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo)
+
+tab1 %>% 
+  left_join(tab2, by = "name") %>% 
+  select(-contains(c("typ", "lab"))) %>% 
+  mutate(xx = paste0(round(value.x * 100), "%"),
+         yy = paste0(round(value.y * 100), "%")) %>% 
+  select(-contains("value")) %>% 
+  kable("latex", booktabs = TRUE,
+        col.names = NULL, linesep = "",
+        align = "lcc") %>%
+  kable_styling(position = wyrownanieTabWykr,
+                latex_options = "hold_position") %>% 
+  add_header_above(c(" ", setNames(1, woj), "Polska" = 1))
+```
+
+### 3.2.3. Możliwości godzenia pracy z życiem poza pracą
+
+Pod względem możliwości godzenia wykonywanej pracy z “życiem poza pracą” usatysfakcjonowanych było `r round(wojSzk$praca_zad_zycie_2f_waga[[1]]$zad_zdecyd_raczej * 100)`% spośród absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop`, którzy w momencie udziału w badaniu pracowali zarobkowo. Przeciwną opinię wyraziło `r round(wojSzk$praca_zad_zycie_2f_waga[[1]]$nzad_zdecyd_raczej * 100)`%.
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$praca_zad_zycie_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo),
+         name = c("Zadowoleni",
+                  "Ani zadowoleni\nani niezadowoleni",
+                  "Niezadowoleni",
+                  "Trudno powiedzieć"))
+tab2 = as.data.frame(polska$praca_zad_zycie_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = "Polska",
+         name = c("Zadowoleni",
+                  "Ani zadowoleni\nani niezadowoleni",
+                  "Niezadowoleni",
+                  "Trudno powiedzieć"))
+
+tab = rbind(tab1, tab2)
+tab$name = factor(tab$name, levels = c("Zadowoleni",
+                                       "Ani zadowoleni\nani niezadowoleni",
+                                       "Niezadowoleni",
+                                       "Trudno powiedzieć"))
+
+wykres = ggplot(tab, aes(x = reorder(typ, typ), y = value, fill = reorder(name, desc(name)))) +
+  geom_bar(width = 0.75, stat = "identity", colour = "white") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("#808080", "#fa9fb5", "#c51b8a", "#5e015c"), guide = guide_legend(reverse = TRUE)) +
+  labs(fill = NULL,
+       title = paste0(
+         "Wykres ", wyk_num(),
+         ": Opinie absolwentów dotyczące poziomu zadowolenia z możliwości\ngodzenia pracy zarobkowej z życiem poza pracą"
+       )) +
+  geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3,
+            colour = "#ffffff") +
+  ylab(NULL) +
+  xlab(NULL) +
+  coord_flip() +
+  theme(legend.position = "right",
+        panel.background = element_rect(fill = "white"),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(size = 12))
+print(wykres)
+
+cat(
+  "\\textcolor{gray}{\\relscale{0.75}Wykres przedstawia odpowiedzi ",
+  round(wojSzk$praca_zad_zycie_2f_waga[[1]]$n),
+  " absolwentów ",
+  szkola$formy_2f[[1]]$szkola_lmn,
+  " z województwa ",
+  szkola$formy_2f[[1]]$woj_nazwa_dop,
+  " oraz ",
+  round(polska$praca_zad_zycie_2f_waga[[1]]$n),
+  " absolwentów tego typu szkół z całego kraju. Respondentom zadano pytanie “Na ile jest Pan(i) zadowolony(a) ze swojej obecnej pracy… pod względem możliwości godzenia pracy z życiem poza pracą. [Jeżeli pracuje Pan(i) w kilku miejscach, to proszę odnieść się do tej pracy, która zajmuje Panu(i) najwięcej czasu]”. Respondenci wskazywali odpowiedź: “Zdecydowanie zadowolony(a)” , “Raczej zadowolony(a)”, “Ani zadowolony(a) ani niezadowolony(a)”, “Raczej niezadowolony(a)”, “Zdecydowanie niezadowolony(a)”, “Trudno powiedzieć”.}",
+  sep = "")
+
+woj = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo)
+
+tab1 %>% 
+  left_join(tab2, by = "name") %>% 
+  select(-contains(c("typ", "lab"))) %>% 
+  mutate(xx = paste0(round(value.x * 100), "%"),
+         yy = paste0(round(value.y * 100), "%")) %>% 
+  select(-contains("value")) %>% 
+  kable("latex", booktabs = TRUE,
+        col.names = NULL, linesep = "",
+        align = "lcc") %>%
+  kable_styling(position = wyrownanieTabWykr,
+                latex_options = "hold_position") %>% 
+  add_header_above(c(" ", setNames(1, woj), "Polska" = 1))
+```
+
+### 3.2.4. Satysfakcja z poziomu zarobków
+
+Zarobkami usatysfakcjonowanych było `r round(wojSzk$praca_zad_zarobki_2f_waga[[1]]$zad_zdecyd_raczej * 100)`% spośród absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop` pracujących w momencie badania. Niezadowolenie z wysokości zarobków wyraziło `r round(wojSzk$praca_zad_zarobki_2f_waga[[1]]$nzad_zdecyd_raczej * 100)`%.
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$praca_zad_zarobki_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo),
+         name = c("Zadowoleni",
+                  "Ani zadowoleni\nani niezadowoleni",
+                  "Niezadowoleni",
+                  "Trudno powiedzieć"))
+tab2 = as.data.frame(polska$praca_zad_zarobki_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = "Polska",
+         name = c("Zadowoleni",
+                  "Ani zadowoleni\nani niezadowoleni",
+                  "Niezadowoleni",
+                  "Trudno powiedzieć"))
+
+tab = rbind(tab1, tab2)
+tab$name = factor(tab$name, levels = c("Zadowoleni",
+                                       "Ani zadowoleni\nani niezadowoleni",
+                                       "Niezadowoleni",
+                                       "Trudno powiedzieć"))
+
+wykres = ggplot(tab, aes(x = reorder(typ, typ), y = value, fill = reorder(name, desc(name)))) +
+  geom_bar(width = 0.75, stat = "identity", colour = "white") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("#808080", "#fa9fb5", "#c51b8a", "#5e015c"), guide = guide_legend(reverse = TRUE)) +
+  labs(fill = NULL,
+       title = paste0(
+         "Wykres ", wyk_num(),
+         ": Opinie absolwentów dotyczące poziomu satysfakcji z\nuzyskiwanych zarobków"
+       )) +
+  geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3,
+            colour = "#ffffff") +
+  ylab(NULL) +
+  xlab(NULL) +
+  coord_flip() +
+  theme(legend.position = "right",
+        panel.background = element_rect(fill = "white"),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(size = 12))
+print(wykres)
+
+cat(
+  "\\textcolor{gray}{\\relscale{0.75}Wykres przedstawia odpowiedzi ",
+  round(wojSzk$praca_zad_zarobki_2f_waga[[1]]$n),
+  " absolwentów ",
+  szkola$formy_2f[[1]]$szkola_lmn,
+  " z województwa ",
+  szkola$formy_2f[[1]]$woj_nazwa_dop,
+  " oraz ",
+  round(polska$praca_zad_zarobki_2f_waga[[1]]$n),
+  " absolwentów tego typu szkół z całego kraju. Respondentom zadano pytanie “Na ile jest Pan(i) zadowolony(a) ze swojej obecnej pracy… pod względem wysokości zarobków. [Jeżeli pracuje Pan(i) w kilku miejscach, to proszę odnieść się do tej pracy, która zajmuje Panu(i) najwięcej czasu]”. Respondenci wskazywali odpowiedź: “Zdecydowanie zadowolony(a)” , “Raczej zadowolony(a)”, “Ani zadowolony(a) ani niezadowolony(a)”, “Raczej niezadowolony(a)”, “Zdecydowanie niezadowolony(a)”, “Trudno powiedzieć”.}\n\n",
+  sep = "")
+
+woj = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo)
+
+tab1 %>% 
+  left_join(tab2, by = "name") %>% 
+  select(-contains(c("typ", "lab"))) %>% 
+  mutate(xx = paste0(round(value.x * 100), "%"),
+         yy = paste0(round(value.y * 100), "%")) %>% 
+  select(-contains("value")) %>% 
+  kable("latex", booktabs = TRUE,
+        col.names = NULL, linesep = "",
+        align = "lcc") %>%
+  kable_styling(position = wyrownanieTabWykr,
+                latex_options = "hold_position") %>% 
+  add_header_above(c(" ", setNames(1, woj), "Polska" = 1))
+```
+
+### 3.2.5. Pewność utrzymania pracy
+
+Pewność utrzymania pracy pozytywnie oceniło `r round(wojSzk$praca_zad_pewnosc_2f_waga[[1]]$zad_zdecyd_raczej * 100)`% spośród pracujących absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop`. Niezadowolenie z aktualnie wykonywanej pracy pod względem stopnia pewności, że uda się ją utrzymać, wyraziło `r round(wojSzk$praca_zad_pewnosc_2f_waga[[1]]$nzad_zdecyd_raczej * 100)`%.
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$praca_zad_pewnosc_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo),
+         name = c("Zadowoleni",
+                  "Ani zadowoleni\nani niezadowoleni",
+                  "Niezadowoleni",
+                  "Trudno powiedzieć"))
+tab2 = as.data.frame(polska$praca_zad_pewnosc_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = "Polska",
+         name = c("Zadowoleni",
+                  "Ani zadowoleni\nani niezadowoleni",
+                  "Niezadowoleni",
+                  "Trudno powiedzieć"))
+
+tab = rbind(tab1, tab2)
+tab$name = factor(tab$name, levels = c("Zadowoleni",
+                                       "Ani zadowoleni\nani niezadowoleni",
+                                       "Niezadowoleni",
+                                       "Trudno powiedzieć"))
+
+wykres = ggplot(tab, aes(x = reorder(typ, typ), y = value, fill = reorder(name, desc(name)))) +
+  geom_bar(width = 0.75, stat = "identity", colour = "white") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("#808080", "#fa9fb5", "#c51b8a", "#5e015c"), guide = guide_legend(reverse = TRUE)) +
+  labs(fill = NULL,
+       title = paste0(
+         "Wykres ", wyk_num(),
+         ": Opinie absolwentów dotyczące poziomu zadowolenia ze stabilności\npracy zarobkowej"
+       )) +
+  geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3,
+            colour = "#ffffff") +
+  ylab(NULL) +
+  xlab(NULL) +
+  coord_flip() +
+  theme(legend.position = "right",
+        panel.background = element_rect(fill = "white"),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(size = 12))
+print(wykres)
+
+cat(
+  "\\textcolor{gray}{\\relscale{0.75}Wykres przedstawia odpowiedzi ",
+  round(wojSzk$praca_zad_pewnosc_2f_waga[[1]]$n),
+  " absolwentów ",
+  szkola$formy_2f[[1]]$szkola_lmn,
+  " z województwa ",
+  szkola$formy_2f[[1]]$woj_nazwa_dop,
+  " oraz ",
+  round(polska$praca_zad_pewnosc_2f_waga[[1]]$n),
+  " absolwentów tego typu szkół z całego kraju. Respondentom zadano pytanie “Na ile jest Pan(i) zadowolony(a) ze swojej obecnej pracy… pod względem pewności, że ją Pan(i) utrzyma. [Jeżeli pracuje Pan(i) w kilku miejscach, to proszę odnieść się do tej pracy, która zajmuje Panu(i) najwięcej czasu]”. Respondenci wskazywali odpowiedź: “Zdecydowanie zadowolony(a)” , “Raczej zadowolony(a)”, “Ani zadowolony(a) ani niezadowolony(a)”, “Raczej niezadowolony(a)”, “Zdecydowanie niezadowolony(a)”, “Trudno powiedzieć”.}\n\n",
+  sep = "")
+
+woj = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo)
+
+tab1 %>% 
+  left_join(tab2, by = "name") %>% 
+  select(-contains(c("typ", "lab"))) %>% 
+  mutate(xx = paste0(round(value.x * 100), "%"),
+         yy = paste0(round(value.y * 100), "%")) %>% 
+  select(-contains("value")) %>% 
+  kable("latex", booktabs = TRUE,
+        col.names = NULL, linesep = "",
+        align = "lcc") %>%
+  kable_styling(position = wyrownanieTabWykr,
+                latex_options = "hold_position") %>% 
+  add_header_above(c(" ", setNames(1, woj), "Polska" = 1))
+```
+
+`r ifelse(typDokumentu %in% "pdf", "\\newpage", "")`
+
+# 4. Nauka zdalna podczas pandemii
+
+Absolwentom z rocznika 2019/2020, ze względu na szczególny okres, na jaki przypadała ich nauka w ostatnich klasach, zostały zadane również pytania dotyczące udziału w nauce zdalnej.
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr}
+
+szk_forma = case_when(
+  szkola$TYP %in% 1 ~ "szkołach branżowych pierwszego stopnia",
+  szkola$TYP %in% 2 ~ "technikach",
+  szkola$TYP %in% 3 ~ "szkołach policealnych")
+
+cat(
+  "\n\nOd 25 marca 2020 roku, ze względu na pandemię, nauka w ",
+  szk_forma,
+  " realizowana była przeważnie za pomocą metod i technik kształcenia na odległość.\n\n",
+  sep = ""
+)
+```
+
+## 4.1. Czas poświęcany na naukę
+
+Z odpowiedzi absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop` wynika, że nauka zdalna sprawiła, że `r round(wojSzk$czas_przed_ogolne_2f_waga[[1]]$mniej * 100)`% poświęcało w ostatniej klasie mniej czasu na naukę **przedmiotów ogólnych**. Zdalna forma nauki miała odwrotny efekt w przypadku `r round(wojSzk$czas_przed_ogolne_2f_waga[[1]]$wiecej * 100)`% absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop`, natomiast w przypadku `r round(wojSzk$czas_przed_ogolne_2f_waga[[1]]$tyle_samo * 100)`% nie wpłynęła na czas poświęcany na naukę przedmiotów ogólnych.
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$czas_przed_ogolne_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo),
+         name = c("Mniej",
+                  "Tyle samo",
+                  "Więcej",
+                  "Trudno powiedzieć"))
+tab2 = as.data.frame(polska$czas_przed_ogolne_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = "Polska",
+         name = c("Mniej",
+                  "Tyle samo",
+                  "Więcej",
+                  "Trudno powiedzieć"))
+
+tab = rbind(tab1, tab2)
+tab$name = factor(tab$name, levels = c("Mniej",
+                                       "Tyle samo",
+                                       "Więcej",
+                                       "Trudno powiedzieć"))
+
+wykres = ggplot(tab, aes(x = reorder(typ, typ), y = value, fill = reorder(name, desc(name)))) +
+  geom_bar(width = 0.75, stat = "identity", colour = "white") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("#808080", "#fa9fb5", "#c51b8a", "#5e015c"), guide = guide_legend(reverse = TRUE)) +
+  labs(fill = NULL,
+       title = paste0(
+         "Wykres ", wyk_num(),
+         ": Opinie absolwentów dotyczące czasu poświęcanego na naukę\nprzedmiotów ogólnych w okresie pandemii"
+       )) +
+  geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3,
+            colour = "#ffffff") +
+  ylab(NULL) +
+  xlab(NULL) +
+  coord_flip() +
+  theme(legend.position = "right",
+        panel.background = element_rect(fill = "white"),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(size = 12))
+print(wykres)
+
+cat(
+  "\\textcolor{gray}{\\relscale{0.75}Wykres przedstawia odpowiedzi ",
+  round(wojSzk$czas_przed_ogolne_2f_waga[[1]]$n),
+  " absolwentów ",
+  szkola$formy_2f[[1]]$szkola_lmn,
+  " z województwa ",
+  szkola$formy_2f[[1]]$woj_nazwa_dop,
+  " oraz ",
+  round(polska$czas_przed_ogolne_2f_waga[[1]]$n),
+  " absolwentów tego typu szkół z całego kraju. Respondentom zadano pytanie “Jak to, że nauka w okresie pandemii odbywała się zdalnie, wpłynęło na czas poświęcany przez Panią/Pana na: naukę przedmiotów ogólnych? (...)”. Respondenci wskazywali odpowiedź “poświęcałem(am) mniej czasu”, “poświęcałem(am) tyle samo czasu, ”poświęcałem(am) więcej czasu” lub “trudno powiedzieć”.}\n\nDane z wykresu przedstawiono szczegółowo w poniższej tabeli.",
+  sep = "")
+
+woj = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo)
+
+tab1 %>% 
+  left_join(tab2, by = "name") %>% 
+  select(-contains(c("typ", "lab"))) %>% 
+  mutate(xx = paste0(round(value.x * 100), "%"),
+         yy = paste0(round(value.y * 100), "%")) %>% 
+  select(-contains("value")) %>% 
+  kable("latex", booktabs = TRUE,
+        col.names = NULL, linesep = "",
+        align = "lcc") %>%
+  kable_styling(position = wyrownanieTabWykr,
+                latex_options = "hold_position") %>% 
+  add_header_above(c(" ", setNames(1, woj), "Polska" = 1))
+```
+
+Pozytywny wpływ nauki zdalnej na czas poświęcany w ostatniej klasie przez absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop` na opanowanie **teorii przedmiotów zawodowych** odnotowano w przypadku `r round(wojSzk$czas_przedzaw_teo_2f_waga[[1]]$wiecej * 100)`%. W przypadku `r round(wojSzk$czas_przedzaw_teo_2f_waga[[1]]$mniej * 100)`% nauka w tej formie zmniejszyła czas, jaki poświęcali na teoretyczne przedmioty zawodowe, a w przypadku `r round(wojSzk$czas_przedzaw_teo_2f_waga[[1]]$tyle_samo * 100)`% nie miała wpływu.
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$czas_przedzaw_teo_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo),
+         name = c("Mniej",
+                  "Tyle samo",
+                  "Więcej",
+                  "Trudno powiedzieć"))
+tab2 = as.data.frame(polska$czas_przedzaw_teo_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = "Polska",
+         name = c("Mniej",
+                  "Tyle samo",
+                  "Więcej",
+                  "Trudno powiedzieć"))
+
+tab = rbind(tab1, tab2)
+tab$name = factor(tab$name, levels = c("Mniej",
+                                       "Tyle samo",
+                                       "Więcej",
+                                       "Trudno powiedzieć"))
+
+wykres = ggplot(tab, aes(x = reorder(typ, typ), y = value, fill = reorder(name, desc(name)))) +
+  geom_bar(width = 0.75, stat = "identity", colour = "white") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("#808080", "#fa9fb5", "#c51b8a", "#5e015c"), guide = guide_legend(reverse = TRUE)) +
+  labs(fill = NULL,
+       title = paste0(
+         "Wykres ", wyk_num(),
+         ": Opinie absolwentów dotyczące czasu poświęcanego na teoretyczną\nnaukę przedmiotów zawodowych w okresie pandemii"
+       )) +
+  geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3,
+            colour = "#ffffff") +
+  ylab(NULL) +
+  xlab(NULL) +
+  coord_flip() +
+  theme(legend.position = "right",
+        panel.background = element_rect(fill = "white"),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(size = 12))
+print(wykres)
+
+cat(
+  "\\textcolor{gray}{\\relscale{0.75}Wykres przedstawia odpowiedzi ",
+  round(wojSzk$czas_przedzaw_teo_2f_waga[[1]]$n),
+  " absolwentów ",
+  szkola$formy_2f[[1]]$szkola_lmn,
+  " z województwa ",
+  szkola$formy_2f[[1]]$woj_nazwa_dop,
+  " oraz ",
+  round(polska$czas_przedzaw_teo_2f_waga[[1]]$n),
+  " absolwentów tego typu szkół z całego kraju. Respondentom zadano pytanie “Jak to, że nauka w okresie pandemii odbywała się zdalnie, wpłynęło na czas poświęcany przez Panią/Pana na: (...) teoretyczną naukę przedmiotów zawodowych? (...)”. Respondenci wskazywali odpowiedź “poświęcałem(am) mniej czasu”, “poświęcałem(am) tyle samo czasu, ”poświęcałem(am) więcej czasu” lub “trudno powiedzieć”.}\n\nDane z wykresu przedstawiono szczegółowo w poniższej tabeli.",
+  sep = "")
+
+woj = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo)
+
+tab1 %>% 
+  left_join(tab2, by = "name") %>% 
+  select(-contains(c("typ", "lab"))) %>% 
+  mutate(xx = paste0(round(value.x * 100), "%"),
+         yy = paste0(round(value.y * 100), "%")) %>% 
+  select(-contains("value")) %>% 
+  kable("latex", booktabs = TRUE,
+        col.names = NULL, linesep = "",
+        align = "lcc") %>%
+  kable_styling(position = wyrownanieTabWykr,
+                latex_options = "hold_position") %>% 
+  add_header_above(c(" ", setNames(1, woj), "Polska" = 1))
+```
+
+Odbywanie nauki zdalnie skróciło czas poświęcony w ostatniej klasie na **praktyczną naukę zawodu** przez `r round(wojSzk$czas_przedzaw_prak_2f_waga[[1]]$mniej * 100)`% absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop`, a wydłużyło w przypadku `r round(wojSzk$czas_przedzaw_prak_2f_waga[[1]]$wiecej * 100)`%. Absolwenci, którzy w warunkach nauki zdalnej poświęcili na praktyczną naukę zawodu tyle samo czasu, co gdyby nauka szkolna odbywała się stacjonarnie, stanowili `r round(wojSzk$czas_przedzaw_prak_2f_waga[[1]]$tyle_samo * 100)`%.
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$czas_przedzaw_prak_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo),
+         name = c("Mniej",
+                  "Tyle samo",
+                  "Więcej",
+                  "Trudno powiedzieć"))
+tab2 = as.data.frame(polska$czas_przedzaw_prak_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = "Polska",
+         name = c("Mniej",
+                  "Tyle samo",
+                  "Więcej",
+                  "Trudno powiedzieć"))
+
+tab = rbind(tab1, tab2)
+tab$name = factor(tab$name, levels = c("Mniej",
+                                       "Tyle samo",
+                                       "Więcej",
+                                       "Trudno powiedzieć"))
+
+wykres = ggplot(tab, aes(x = reorder(typ, typ), y = value, fill = reorder(name, desc(name)))) +
+  geom_bar(width = 0.75, stat = "identity", colour = "white") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("#808080", "#fa9fb5", "#c51b8a", "#5e015c"), guide = guide_legend(reverse = TRUE)) +
+  labs(fill = NULL,
+       title = paste0(
+         "Wykres ", wyk_num(),
+         ": Opinie absolwentów dotyczące czasu poświęcanego na praktyczną\nnaukę przedmiotów zawodowych w okresie pandemii"
+       )) +
+  geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3,
+            colour = "#ffffff") +
+  ylab(NULL) +
+  xlab(NULL) +
+  coord_flip() +
+  theme(legend.position = "right",
+        panel.background = element_rect(fill = "white"),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(size = 12))
+print(wykres)
+
+cat(
+  "\\textcolor{gray}{\\relscale{0.75}Wykres przedstawia odpowiedzi ",
+  round(wojSzk$czas_przedzaw_prak_2f_waga[[1]]$n),
+  " absolwent ",
+  szkola$formy_2f[[1]]$szkola_lmn,
+  " z województwa ",
+  szkola$formy_2f[[1]]$woj_nazwa_dop,
+  " oraz ",
+  round(polska$czas_przedzaw_prak_2f_waga[[1]]$n),
+  " absolwentów tego typu szkół z całego kraju. Respondentom zadano pytanie “Jak to, że nauka w okresie pandemii odbywała się zdalnie, wpłynęło na czas poświęcany przez Panią/Pana na: (...) praktyczną naukę przedmiotów zawodowych?”. Respondenci wskazywali odpowiedź “poświęcałem(am) mniej czasu”, “poświęcałem(am) tyle samo czasu, ”poświęcałem(am) więcej czasu” lub “trudno powiedzieć”.}\n\nDane z wykresu przedstawiono szczegółowo w poniższej tabeli.",
+  sep = "")
+
+woj = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo)
+
+tab1 %>% 
+  left_join(tab2, by = "name") %>% 
+  select(-contains(c("typ", "lab"))) %>% 
+  mutate(xx = paste0(round(value.x * 100), "%"),
+         yy = paste0(round(value.y * 100), "%")) %>% 
+  select(-contains("value")) %>% 
+  kable("latex", booktabs = TRUE,
+        col.names = NULL, linesep = "",
+        align = "lcc") %>%
+  kable_styling(position = wyrownanieTabWykr,
+                latex_options = "hold_position") %>% 
+  add_header_above(c(" ", setNames(1, woj), "Polska" = 1))
+```
+
+## 4.2. Warunki do nauki zdalnej
+
+### 4.2.1. Połączenie z internetem
+
+W stosunku do potrzeb związanych z nauką zdalną w ostatniej klasie, wystarczająco dobre połączenie z internetem miało `r round(wojSzk$war_internet_2f_waga[[1]]$wyst * 100)`% absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop`. Niewystarczający dostęp do takiego łącza miało `r round(wojSzk$war_internet_2f_waga[[1]]$n_wyst * 100)`%.
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.align = wyrownanieTabWykr}
+if (round(wojSzk$war_internet_2f_waga[[1]]$niepotrz * 100) %in% 0) {
+  cat("")
+} else {
+  cat(
+    " Natomiast ",
+    round(wojSzk$war_internet_2f_waga[[1]]$niepotrz * 100),
+    "% oceniło, że dobre połączenie z internetem nie było im do nauki zdalnej potrzebne.",
+    sep = ""
+  )
+}
+```
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$war_internet_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo),
+         name = c("Niewystarczające",
+                  "Wystarczające",
+                  "Niepotrzebne"))
+tab2 = as.data.frame(polska$war_internet_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = "Polska",
+         name = c("Niewystarczające",
+                  "Wystarczające",
+                  "Niepotrzebne"))
+# tab1$name = factor(tab1$name, levels = c("Wystarczające",
+#                                         "Niewystarczające",
+#                                         "Niepotrzebne"))
+# tab2$name = factor(tab2$name, levels = c("Wystarczające",
+#                                         "Niewystarczające",
+#                                         "Niepotrzebne"))
+
+tab = rbind(tab1, tab2)
+
+wykres = ggplot(tab, aes(x = reorder(typ, typ), y = value, fill = name)) +
+  geom_bar(width = 0.75, stat = "identity", colour = "white") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("#f44b8f", "#b20174", "#5e015c"), guide = guide_legend(reverse = TRUE)) +
+  labs(fill = NULL,
+       title = paste0(
+         "Wykres ", wyk_num(),
+         ": Opinie absolwentów dotyczące warunków do nauki\nzdalnej - połączenie z internetem"
+       )) +
+  geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3,
+            colour = "#ffffff") +
+  ylab(NULL) +
+  xlab(NULL) +
+  coord_flip() +
+  theme(legend.position = "right",
+        panel.background = element_rect(fill = "white"),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(size = 12))
+print(wykres)
+
+cat(
+  "\\textcolor{gray}{\\relscale{0.75}Wykres przedstawia odpowiedzi ",
+  round(wojSzk$war_internet_2f_waga[[1]]$n),
+  " absolwentów ",
+  szkola$formy_2f[[1]]$szkola_lmn,
+  " z województwa ",
+  szkola$formy_2f[[1]]$woj_nazwa_dop,
+  " oraz ",
+  round(polska$war_internet_2f_waga[[1]]$n),
+  " absolwentów tego typu szkół z całego kraju. Respondentom zadano pytanie “Nauka zdalna w okresie epidemii wymagała odpowiednich warunków. Jakie miał(a) Pan(i) wtedy możliwości korzystania z: dobrego połączenia z internetem? (...). Respondenci wskazywali odpowiedź “całkowicie wystarczające do nauki zdalnej”, “raczej wystarczające do nauki zdalnej”, “raczej niewystarczające do nauki zdalnej”, “w ogóle niewystarczające do nauki zdalnej”, “to nie było potrzebne do nauki zdalnej”.}\n\nDane z wykresu przedstawiono szczegółowo w poniższej tabeli.",
+  sep = "")
+
+woj = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo)
+
+tab1 %>% 
+  left_join(tab2, by = "name") %>% 
+  select(-contains(c("typ", "lab"))) %>% 
+  mutate(xx = paste0(round(value.x * 100), "%"),
+         yy = paste0(round(value.y * 100), "%")) %>% 
+  select(-contains("value")) %>% 
+  arrange(desc(name)) %>% 
+  kable("latex", booktabs = TRUE,
+        col.names = NULL, linesep = "",
+        align = "lcc") %>%
+  kable_styling(position = wyrownanieTabWykr,
+                latex_options = "hold_position") %>% 
+  add_header_above(c(" ", setNames(1, woj), "Polska" = 1))
+```
+
+### 4.2.2. Sprzęt komputerowy
+
+Pod względem możliwości korzystania z komputera, laptopa lub tabletu, warunki sprzyjające nauce zdalnej miało w ostatniej klasie `r round(wojSzk$war_komp_2f_waga[[1]]$wyst * 100)`% absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop`, którzy wypełnili ankiety. Deficyty w zakresie sprzętu komputerowego utrudniające udział w nauce zdalnej wystąpiły w przypadku `r round(wojSzk$war_komp_2f_waga[[1]]$n_wyst * 100)`%.
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.align = wyrownanieTabWykr}
+if (round(wojSzk$war_komp_2f_waga[[1]]$niepotrz * 100) %in% 0) {
+  cat("")
+} else {
+  cat(
+    " Tego rodzaju wyposażenie nie było potrzebne do nauki zdalnej zdaniem  ",
+    round(wojSzk$war_komp_2f_waga[[1]]$niepotrz * 100),
+    "%.",
+    sep = ""
+  )
+}
+```
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$war_komp_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo),
+         name = c("Niewystarczające",
+                  "Wystarczające",
+                  "Niepotrzebne"))
+tab2 = as.data.frame(polska$war_komp_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = "Polska",
+         name = c("Niewystarczające",
+                  "Wystarczające",
+                  "Niepotrzebne"))
+# tab1$name = factor(tab1$name, levels = c("Wystarczające",
+#                                         "Niewystarczające",
+#                                         "Niepotrzebne"))
+# tab2$name = factor(tab2$name, levels = c("Wystarczające",
+#                                         "Niewystarczające",
+#                                         "Niepotrzebne"))
+
+tab = rbind(tab1, tab2)
+
+wykres = ggplot(tab, aes(x = reorder(typ, typ), y = value, fill = name)) +
+  geom_bar(width = 0.75, stat = "identity", colour = "white") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("#f44b8f", "#b20174", "#5e015c"), guide = guide_legend(reverse = TRUE)) +
+  labs(fill = NULL,
+       title = paste0(
+         "Wykres ", wyk_num(),
+         ": Opinie absolwentów dotyczące warunków do nauki\nzdalnej - sprzęt komputerowy"
+       )) +
+  geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3,
+            colour = "#ffffff") +
+  ylab(NULL) +
+  xlab(NULL) +
+  coord_flip() +
+  theme(legend.position = "right",
+        panel.background = element_rect(fill = "white"),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(size = 12))
+print(wykres)
+
+cat(
+  "\\textcolor{gray}{\\relscale{0.75}Wykres przedstawia odpowiedzi ",
+  round(wojSzk$war_komp_2f_waga[[1]]$n),
+  " absolwentów ",
+  szkola$formy_2f[[1]]$szkola_lmn,
+  " z województwa ",
+  szkola$formy_2f[[1]]$woj_nazwa_dop,
+  " oraz ",
+  round(polska$war_komp_2f_waga[[1]]$n),
+  " absolwentów tego typu szkół z całego kraju. Respondentom zadano pytanie “Nauka zdalna w okresie epidemii wymagała odpowiednich warunków. Jakie miał(a) Pan(i) wtedy możliwości korzystania z: (...) odpowiedniego komputera, laptopa lub tabletu? (...)”. Respondenci wskazywali odpowiedź “całkowicie wystarczające do nauki zdalnej”, “raczej wystarczające do nauki zdalnej”, “raczej niewystarczające do nauki zdalnej”, “w ogóle niewystarczające do nauki zdalnej”, “to nie było potrzebne do nauki zdalnej”.}\n\nDane z wykresu przedstawiono szczegółowo w poniższej tabeli.",
+  sep = "")
+
+woj = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo)
+
+tab1 %>% 
+  left_join(tab2, by = "name") %>% 
+  select(-contains(c("typ", "lab"))) %>% 
+  mutate(xx = paste0(round(value.x * 100), "%"),
+         yy = paste0(round(value.y * 100), "%")) %>% 
+  select(-contains("value")) %>% 
+  arrange(desc(name)) %>% 
+  kable("latex", booktabs = TRUE,
+        col.names = NULL, linesep = "",
+        align = "lcc") %>%
+  kable_styling(position = wyrownanieTabWykr,
+                latex_options = "hold_position") %>% 
+  add_header_above(c(" ", setNames(1, woj), "Polska" = 1))
+```
+
+### 4.2.3. Miejsce do nauki
+
+Wystarczające możliwości nauki zdalnej w spokojnym miejscu miało w ostatniej klasie `r round(wojSzk$war_miejsce_2f_waga[[1]]$wyst * 100)`% absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop` objętych badaniem. W sytuacji niesprzyjającej pod tym względem nauce zdalnej było
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.align = wyrownanieTabWykr, fig.pos = 'H'}
+if (round(wojSzk$war_miejsce_2f_waga[[1]]$niepotrz * 100) %in% 0) {
+  cat(
+    round(wojSzk$war_miejsce_2f_waga[[1]]$n_wyst * 100),
+    "%.",
+    sep = "")
+} else {
+  cat(
+    round(wojSzk$war_miejsce_2f_waga[[1]]$n_wyst * 100),
+    "%, a ",
+    round(wojSzk$war_miejsce_2f_waga[[1]]$niepotrz * 100),
+    "% uznało, że spokojne miejsce do nauki zdalnej nie było im potrzebne.",
+    sep = ""
+  )
+}
+```
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$war_miejsce_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo),
+         name = c("Niewystarczające",
+                  "Wystarczające",
+                  "Niepotrzebne"))
+tab2 = as.data.frame(polska$war_miejsce_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = "Polska",
+         name = c("Niewystarczające",
+                  "Wystarczające",
+                  "Niepotrzebne"))
+# tab1$name = factor(tab1$name, levels = c("Wystarczające",
+#                                         "Niewystarczające",
+#                                         "Niepotrzebne"))
+# tab2$name = factor(tab2$name, levels = c("Wystarczające",
+#                                         "Niewystarczające",
+#                                         "Niepotrzebne"))
+
+tab = rbind(tab1, tab2)
+
+wykres = ggplot(tab, aes(x = reorder(typ, typ), y = value, fill = name)) +
+  geom_bar(width = 0.75, stat = "identity", colour = "white") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("#f44b8f", "#b20174", "#5e015c"), guide = guide_legend(reverse = TRUE)) +
+  labs(fill = NULL,
+       title = paste0(
+         "Wykres ", wyk_num(),
+         ": Opinie absolwentów dotyczące warunków do nauki\nzdalnej - miejsce do nauki"
+       )) +
+  geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3,
+            colour = "#ffffff") +
+  ylab(NULL) +
+  xlab(NULL) +
+  coord_flip() +
+  theme(legend.position = "right",
+        panel.background = element_rect(fill = "white"),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(size = 12))
+print(wykres)
+
+cat(
+  "\\textcolor{gray}{\\relscale{0.75}Wykres przedstawia odpowiedzi ",
+  round(wojSzk$war_miejsce_2f_waga[[1]]$n),
+  " absolwentów ",
+  szkola$formy_2f[[1]]$szkola_lmn,
+  " z województwa ",
+  szkola$formy_2f[[1]]$woj_nazwa_dop,
+  " oraz ",
+  round(polska$war_miejsce_2f_waga[[1]]$n),
+  " absolwentów tego typu szkół z całego kraju. Respondentom zadano pytanie “Nauka zdalna w okresie epidemii wymagała odpowiednich warunków. Jakie miał(a) Pan(i) wtedy możliwości korzystania z: (...) spokojnego miejsca do nauki? (...)”. Respondenci wskazywali odpowiedź “całkowicie wystarczające do nauki zdalnej”, “raczej wystarczające do nauki zdalnej”, “raczej niewystarczające do nauki zdalnej”, “w ogóle niewystarczające do nauki zdalnej”, “to nie było potrzebne do nauki zdalnej”.}\n\nDane z wykresu przedstawiono szczegółowo w poniższej tabeli.",
+  sep = "")
+
+woj = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo)
+
+tab1 %>% 
+  left_join(tab2, by = "name") %>% 
+  select(-contains(c("typ", "lab"))) %>% 
+  mutate(xx = paste0(round(value.x * 100), "%"),
+         yy = paste0(round(value.y * 100), "%")) %>% 
+  select(-contains("value")) %>% 
+  arrange(desc(name)) %>% 
+  kable("latex", booktabs = TRUE,
+        col.names = NULL, linesep = "",
+        align = "lcc") %>%
+  kable_styling(position = wyrownanieTabWykr,
+                latex_options = "hold_position") %>% 
+  add_header_above(c(" ", setNames(1, woj), "Polska" = 1))
+```
+
+### 4.2.4. Pomoc w przypadku trudności
+
+Z wystarczającej pomocy w nauce, w przypadku napotkania trudności gdy odbywała się zdalnie, mogło korzystać w ostatniej klasie `r round(wojSzk$war_pomoc_2f_waga[[1]]$wyst * 100)`% absolwentów `r szkola$formy_2f[[1]]$szkola_lmn` z województwa `r szkola$formy_2f[[1]]$woj_nazwa_dop`. Potrzeby w tym zakresie `r round(wojSzk$war_pomoc_2f_waga[[1]]$n_wyst * 100)`% respondentów nie były zaspokojone.
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.align = wyrownanieTabWykr}
+if (round(wojSzk$war_pomoc_2f_waga[[1]]$niepotrz * 100) %in% 0) {
+  cat(".")
+} else {
+  cat(
+    " Pomoc w przypadku trudności w nauce nie była potrzebna podczas nauki zdalnej ",
+    round(wojSzk$war_pomoc_2f_waga[[1]]$niepotrz * 100),
+    "% absolwentów.",
+    sep = ""
+  )
+}
+```
+
+```{r, echo = FALSE, message = FALSE, results = 'asis', fig.height = 2.5, fig.align = wyrownanieTabWykr, warning = FALSE}
+tab1 = as.data.frame(wojSzk$war_pomoc_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo),
+         name = c("Niewystarczające",
+                  "Wystarczające",
+                  "Niepotrzebne"))
+tab2 = as.data.frame(polska$war_pomoc_2f_waga[[1]]) %>% 
+  select(-c(n, etykieta)) %>% 
+  pivot_longer(everything()) %>% 
+  mutate(lab = case_when(round(value, 2) >= 0.06 ~ paste0(round(value * 100), "%"),
+                         round(value, 2) < 0.06 ~ ""),
+         typ = "Polska",
+         name = c("Niewystarczające",
+                  "Wystarczające",
+                  "Niepotrzebne"))
+# tab1$name = factor(tab1$name, levels = c("Wystarczające",
+#                                         "Niewystarczające",
+#                                         "Niepotrzebne"))
+# tab2$name = factor(tab2$name, levels = c("Wystarczające",
+#                                         "Niewystarczające",
+#                                         "Niepotrzebne"))
+
+tab = rbind(tab1, tab2)
+
+wykres = ggplot(tab, aes(x = reorder(typ, typ), y = value, fill = name)) +
+  geom_bar(width = 0.75, stat = "identity", colour = "white") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = c("#f44b8f", "#b20174", "#5e015c"), guide = guide_legend(reverse = TRUE)) +
+  labs(fill = NULL,
+       title = paste0(
+         "Wykres ", wyk_num(),
+         ": Opinie absolwentów dotyczące warunków do nauki\nzdalnej - pomoc  w przypadku trudności"
+       )) +
+  geom_text(aes(label = lab), position = position_stack(vjust = 0.5), size = 3,
+            colour = "#ffffff") +
+  ylab(NULL) +
+  xlab(NULL) +
+  coord_flip() +
+  theme(legend.position = "right",
+        panel.background = element_rect(fill = "white"),
+        axis.ticks.y = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.title.position = "plot",
+        plot.title = element_text(size = 12))
+print(wykres)
+
+cat(
+  "\\textcolor{gray}{\\relscale{0.75}Wykres przedstawia odpowiedzi ",
+  round(wojSzk$war_pomoc_2f_waga[[1]]$n),
+  " absolwentów ",
+  szkola$formy_2f[[1]]$szkola_lmn,
+  " z województwa ",
+  szkola$formy_2f[[1]]$woj_nazwa_dop,
+  " oraz ",
+  round(polska$war_pomoc_2f_waga[[1]]$n),
+  " absolwentów tego typu szkół z całego kraju. Respondentom zadano pytanie “Nauka zdalna w okresie epidemii wymagała odpowiednich warunków. Jakie miał(a) Pan(i) wtedy możliwości korzystania z: (...) czyjejś pomocy w nauce w przypadku trudności”. Respondenci wskazywali odpowiedź “całkowicie wystarczające do nauki zdalnej”, “raczej wystarczające do nauki zdalnej”, “raczej niewystarczające do nauki zdalnej”, “w ogóle niewystarczające do nauki zdalnej”, “to nie było potrzebne do nauki zdalnej”.}\n\nDane z wykresu przedstawiono szczegółowo w poniższej tabeli.",
+  sep = "")
+
+woj = paste0("Województwo\n", szkola$formy_2f[[1]]$wojewodztwo)
+
+tab1 %>% 
+  left_join(tab2, by = "name") %>% 
+  select(-contains(c("typ", "lab"))) %>% 
+  mutate(xx = paste0(round(value.x * 100), "%"),
+         yy = paste0(round(value.y * 100), "%")) %>% 
+  select(-contains("value")) %>% 
+  arrange(desc(name)) %>% 
+  kable("latex", booktabs = TRUE,
+        col.names = NULL, linesep = "",
+        align = "lcc") %>%
+  kable_styling(position = wyrownanieTabWykr,
+                latex_options = "hold_position") %>% 
+  add_header_above(c(" ", setNames(1, woj), "Polska" = 1))
+```
+
+`r ifelse(typDokumentu %in% "pdf", "\\newpage", "")`
+
+`r ifelse(typDokumentu %in% "pdf", "---", "")`
+
+Więcej informacji o monitorowaniu losów absolwentów znajdą Państwo na stronie:
+
+https://losyabsolwentow.ibe.edu.pl/
+

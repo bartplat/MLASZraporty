@@ -1,0 +1,40 @@
+# MLASZraporty 0.2.0 ()
+
+- Duże zmiany:
+  - Zmiana nazw szablonów na "raport_szkoly_1rm.Rmd" i "raport_powiaty_1rm.Rmd".
+  - Dostosowanie pakietu do zmian w sposobie obliczania wskaźnikow zagregowanych przez pakiet MLASZdane w wersji 0.4.0 (grupy porównawcze definiowane oddzielnie dla każdej analizowanej grupy - zbiór wartości wskaźników w grupach porównawczych ma teraz zawsze tyle samo wierszy, co zbiór wartości wskaźników w analizowanych grupach):
+    - Przeniesienie na funkcję generuj_raporty() odpowiedzialności za wybór odpowiedniego wiersza z ramki danych z wartościami wskaźników w grupach porównawczych (wcześniej odpowiedzialny był za to konkretny szablon raportu).
+    - Nowy opcjonalny argument generuj_raporty() umożliwiający wskazanie kolumny zawierającej identyfikator analizowanej grupy (występujący również w zbiorze z wartościami wskaźników w grupach porównawczych).
+    - Przykładowe zbiory danych dołączone do pakietu dostosowoano do formatu, w jakim zwraca je pakiet MLASZdane w wersji 0.4.0.
+- Pomniejsze poprawki:
+  - Poprawki literówek w szablonie raportu szkół (z 1. rundy monitoringu).
+
+# MLASZraporty 0.1.4 (26.02.2020)
+
+- Wprowadzono nowe szablony raportóW dla powiato-zawodów.
+
+# MLASZraporty 0.1.3 (27.05.2019)
+
+- Drobne poprawki w dokumentacji.
+
+# MLASZraporty 0.1.2 (16.03.2019)
+
+- Naprawione błędy i usprawnienia:
+  - generuj_raport() sprawdza, czy parametry przekazywane render() nie zawierają
+    cudzysłowów ('"'), a jeśli tak, to dba, żeby w pliku md nie były traktowane
+    dosłownie.
+  - W DESCRIPTION pakiet dplyr przeniesiono do Dependencies (z Imports), jako
+    że wywołanie szablonu 'raport_szkoly.Rmd' i tak ładuje ten pakiet przy
+    pomocy wywołania library().
+
+# MLASZraporty 0.1.1 (26.02.2019)
+
+- Naprawione błędy i usprawnienia:
+  - W przykładowych danych kolumnę SZK_kod zamieniono na nie-listę, co umożliwia
+    bezproblemowe wykonanie przykłądowego kodu z README.md.
+  - W szablonie raportu szkoły usunięte zostały niepotrzebne wywowłania
+    library().
+
+# MLASZraporty 0.1.0 (02.02.2019)
+
+  - Pierwsza działająca wersja pakietu.
