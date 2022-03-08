@@ -124,17 +124,5 @@ test_that("Duplikaty w kolumnie opisującej nazwy raportów", {
 })
 
 ################################################################################
-context("Inne testy")
-################################################################################
-test_that("bez_naglowka_1kolumny()", {
-  df = MLASZraporty:::bez_naglowka_1kolumny(data.frame(a = letters[1:3], b = 1:3))
-  expect_is(df, "data.frame")
-  expect_named(df, "b")
-  expect_equal(rownames(df), letters[1:3])
-})
-
-
-
-################################################################################
 
 unlink(setdiff(list.files(), stanFolderu), recursive = TRUE)

@@ -3,6 +3,7 @@
 #' wartości wskaźników dla poszczególnych grup (każda grupa, dla której ma
 #' zostać wygenerowany raport opisywana jest w innym wierszu ramki danych
 #' przekazywanej argumentem \code{wskazniki}).
+#' @param pakiet ciąg znaków - nazwa pakietu, w którym znajdują się szablony
 #' @param szablon ciąg znaków - nazwa szablonu raportu (por.
 #' \code{\link{wypisz_dostepne_szablony}})
 #' @param wskazniki ramka danych ze wskaznikami grup, dla których mają zostać
@@ -22,18 +23,19 @@
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #' @importFrom rlang ensym
 #' @importFrom rmarkdown yaml_front_matter
-generuj_raporty = function(szablon, wskazniki, wskaznikiGrPor = NULL,
+generuj_raporty = function(pakiet, szablon, wskazniki, wskaznikiGrPor = NULL,
                            kolumnaNazwaPliku = NULL, kolumnaIdGrupy = "grupa",
                            parametry = list()) {
-  stopifnot(is.character(szablon), length(szablon) == 1,
+  stopifnot(is.character(pakiet), length(pakiet) == 1,
+            is.character(szablon), length(szablon) == 1,
             is.data.frame(wskazniki),
             is.data.frame(wskaznikiGrPor) | is.null(wskaznikiGrPor),
             is.list(parametry))
   szablon = paste0(sub("[.]Rmd$", "", szablon), ".Rmd")
-  if (!(szablon %in% suppressMessages(wypisz_dostepne_szablony()))) {
+  if (!(szablon %in% suppressMessages(wypisz_dostepne_szablony(pakiet)))) {
     stop("Szablon o podanej nazwie nie jest dostępny.\nSprawdź dostępne szablony korzystając z funkcji wypisz_dostepne_szablony().")
   }
-  szablonZeSciezka = paste0(okresl_lokalizacje_szablonow(), "/", szablon)
+  szablonZeSciezka = paste0(okresl_lokalizacje_szablonow(pakiet), "/", szablon)
 
   czyKolumnaIdGrupy = tryCatch(!is.null(kolumnaIdGrupy),
                                error = function(e) {return(TRUE)})

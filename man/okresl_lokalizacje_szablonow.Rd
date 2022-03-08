@@ -4,7 +4,10 @@
 \alias{okresl_lokalizacje_szablonow}
 \title{Funkcje nieeksportowane.}
 \usage{
-okresl_lokalizacje_szablonow()
+okresl_lokalizacje_szablonow(pakiet)
+}
+\arguments{
+\item{pakiet}{ciąg znaków - nazwa pakietu, w którym znajdują się szablony}
 }
 \value{
 ścieżka do folderu

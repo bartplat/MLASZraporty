@@ -25,4 +25,4 @@ Suggests:
     MLASZdane (>= 0.4.0),
     testthat,
     covr
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2

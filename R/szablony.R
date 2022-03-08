@@ -1,10 +1,11 @@
 #' @title Lista szablonow raportow dostepnych w ramach pakietu.
 #' @description Funkcja pokazuje nazwy szablonów raportów, które są dostępne
 #' w ramach pakietu.
+#' @param pakiet ciąg znaków - nazwa pakietu, w którym znajdują się szablony
 #' @return wektor tekstowy (niewidocznie)
 #' @export
-wypisz_dostepne_szablony = function() {
-  szablony = list.files(okresl_lokalizacje_szablonow(), "[.]Rmd$")
+wypisz_dostepne_szablony = function(pakiet) {
+  szablony = list.files(okresl_lokalizacje_szablonow(pakiet), "[.]Rmd$")
   message("Dostępne szablony:\n", paste0("- '", szablony, "'", collapse = ",\n"))
   invisible(szablony)
 }
@@ -14,9 +15,10 @@ wypisz_dostepne_szablony = function() {
 #' znajdują się one albo w folderze 'inst/szablony_raportow' albo w folderze
 #' 'szablony_raportow/' głównego folderu pakietu) i zwraca ścieżkę do
 #' odpowiedniego folderu.
+#' @param pakiet ciąg znaków - nazwa pakietu, w którym znajdują się szablony
 #' @return ścieżka do folderu
-okresl_lokalizacje_szablonow = function() {
-  sciezkaDoPakietu = find.package("MLASZraporty")
+okresl_lokalizacje_szablonow = function(pakiet) {
+  sciezkaDoPakietu = find.package(pakiet)
   if (file.exists(paste0(sciezkaDoPakietu, "/inst/szablony_raportow"))) {
     return(paste0(sciezkaDoPakietu, "/inst/szablony_raportow")) # nocov
   } else {

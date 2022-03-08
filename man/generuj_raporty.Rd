@@ -5,6 +5,7 @@
 \title{Drukowanie raportow z zestawieniami wskaznikow.}
 \usage{
 generuj_raporty(
+  pakiet,
   szablon,
   wskazniki,
   wskaznikiGrPor = NULL,
@@ -14,6 +15,8 @@ generuj_raporty(
 )
 }
 \arguments{
+\item{pakiet}{ciąg znaków - nazwa pakietu, w którym znajdują się szablony}
+
 \item{szablon}{ciąg znaków - nazwa szablonu raportu (por.
 \code{\link{wypisz_dostepne_szablony}})}
 
